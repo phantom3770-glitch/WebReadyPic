@@ -1,0 +1,970 @@
+<!DOCTYPE html>
+<html lang="ru" data-lang="ru">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>WebReadyPic — Инновационная веб-подготовка графики</title>
+  <meta name="description" content="Пакетная оптимизация и подготовка изображений для веба и e-commerce. WebP/JPEG/PNG, карточки товаров, до 50 файлов." />
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet" />
+  <script>tailwind.config={theme:{fontFamily:{sans:['Inter','ui-sans-serif','system-ui']}}};</script>
+  <style>
+    :root {
+      --bg: #0B0F19; --cyan: #00F2FE; --violet: #4FACFE;
+      --glass-bg: rgba(255,255,255,0.04); --glass-border: rgba(0,242,254,0.14);
+      --sidebar-w: 320px; --header-h: 68px;
+    }
+    *, *::before, *::after { box-sizing: border-box; }
+    html { scroll-behavior: smooth; }
+    body { margin: 0; font-family: 'Inter', sans-serif; background: var(--bg); color: #E2E8F0; min-height: 100vh; overflow-x: hidden; }
+    ::-webkit-scrollbar { width: 5px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: rgba(0,242,254,0.2); border-radius: 3px; }
+    ::-webkit-scrollbar-thumb:hover { background: rgba(0,242,254,0.45); }
+
+    #app-header { position: fixed; inset: 0 0 auto 0; height: var(--header-h); z-index: 50; display: flex; align-items: center; justify-content: space-between; padding: 0 1.5rem; background: rgba(11,15,25,0.90); backdrop-filter: blur(22px); -webkit-backdrop-filter: blur(22px); border-bottom: 1px solid var(--glass-border); }
+    #sidebar { position: fixed; top: var(--header-h); right: 0; width: var(--sidebar-w); height: calc(100vh - var(--header-h)); overflow-y: auto; z-index: 40; background: rgba(8,12,22,0.94); backdrop-filter: blur(24px); -webkit-backdrop-filter: blur(24px); border-left: 1px solid var(--glass-border); padding: 1.25rem; }
+    #main-content { margin-top: var(--header-h); margin-right: var(--sidebar-w); min-height: calc(100vh - var(--header-h)); padding: 1.75rem; position: relative; z-index: 1; }
+
+    .glass { background: var(--glass-bg); backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px); border: 1px solid var(--glass-border); border-radius: 14px; transition: border-color 0.25s; }
+    .glass:hover { border-color: rgba(0,242,254,0.28); }
+    .grad-text { background: linear-gradient(135deg, var(--cyan) 0%, var(--violet) 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
+    .orb { position: fixed; border-radius: 50%; pointer-events: none; filter: blur(90px); z-index: 0; }
+
+    .drop-zone { border: 2px dashed rgba(0,242,254,0.22); border-radius: 20px; cursor: pointer; position: relative; overflow: hidden; transition: border-color 0.3s, background 0.3s, box-shadow 0.3s; background: rgba(0,242,254,0.018); }
+    .drop-zone:hover { border-color: rgba(0,242,254,0.4); background: rgba(0,242,254,0.035); }
+    .drop-zone.dz-active { border-color: var(--cyan); background: rgba(0,242,254,0.06); animation: pulse-border 1.4s ease-in-out infinite; }
+    .drop-zone.dz-active .cloud-icon { animation: levitate 1.8s ease-in-out infinite; }
+
+    @keyframes pulse-border { 0%,100% { box-shadow: 0 0 30px rgba(0,242,254,0.10), inset 0 0 30px rgba(0,242,254,0.02); } 50% { box-shadow: 0 0 70px rgba(0,242,254,0.32), inset 0 0 70px rgba(0,242,254,0.07); } }
+    @keyframes levitate { 0%,100% { transform: translateY(0); } 50% { transform: translateY(-13px); } }
+    @keyframes fade-in-up { from { opacity: 0; transform: translateY(20px) scale(0.96); } to { opacity: 1; transform: translateY(0) scale(1); } }
+    @keyframes shimmer-move { 0% { background-position: -300% 0; } 100% { background-position: 300% 0; } }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    @keyframes toast-in { from { opacity: 0; transform: translateX(28px); } to { opacity: 1; transform: translateX(0); } }
+    @keyframes toast-out { from { opacity: 1; transform: translateX(0); } to { opacity: 0; transform: translateX(28px); } }
+    @keyframes float-orb { 0%,100% { transform: translateY(0) scale(1); } 50% { transform: translateY(-28px) scale(1.04); } }
+
+    .file-card { animation: fade-in-up 0.38s cubic-bezier(.22,.68,0,1.2) both; animation-delay: calc(var(--i, 0) * 55ms); }
+    .file-card-thumb { width: 100%; aspect-ratio: 1/1; object-fit: cover; border-radius: 9px; background: rgba(255,255,255,0.04); display: block; }
+
+    .shimmer-bar { height: 2px; border-radius: 1px; background: linear-gradient(90deg, rgba(0,242,254,0.07) 0%, rgba(0,242,254,0.55) 25%, rgba(79,172,254,0.85) 50%, rgba(0,242,254,0.55) 75%, rgba(0,242,254,0.07) 100%); background-size: 300% 100%; animation: shimmer-move 1.6s linear infinite; }
+    .spinner { width: 13px; height: 13px; border: 2px solid rgba(0,242,254,0.18); border-top-color: var(--cyan); border-radius: 50%; animation: spin 0.75s linear infinite; display: inline-block; flex-shrink: 0; }
+
+    .toggle { position: relative; width: 42px; height: 22px; flex-shrink: 0; cursor: pointer; user-select: none; }
+    .toggle-track { width: 100%; height: 100%; border-radius: 11px; background: rgba(255,255,255,0.10); border: 1px solid rgba(255,255,255,0.07); transition: background 0.28s, border-color 0.28s; }
+    .toggle.on .toggle-track { background: linear-gradient(135deg, var(--cyan), var(--violet)); border-color: transparent; }
+    .toggle-thumb { position: absolute; top: 3px; left: 3px; width: 16px; height: 16px; border-radius: 50%; background: #fff; box-shadow: 0 1px 6px rgba(0,0,0,0.4); transition: transform 0.28s cubic-bezier(.34,1.56,.64,1); }
+    .toggle.on .toggle-thumb { transform: translateX(20px); }
+
+    .opt-btn { flex: 1; padding: 6px 4px; text-align: center; font-size: 11.5px; font-weight: 500; border-radius: 7px; border: 1px solid rgba(255,255,255,0.08); color: rgba(255,255,255,0.38); background: transparent; cursor: pointer; transition: all 0.22s; white-space: nowrap; font-family: inherit; }
+    .opt-btn:hover { border-color: rgba(0,242,254,0.28); color: rgba(255,255,255,0.7); }
+    .opt-btn.on { background: linear-gradient(135deg, rgba(0,242,254,0.13), rgba(79,172,254,0.13)); border-color: rgba(0,242,254,0.44); color: var(--cyan); font-weight: 600; }
+
+    .btn-primary { display: inline-flex; align-items: center; gap: 7px; padding: 9px 18px; border-radius: 10px; font-size: 13.5px; font-weight: 700; cursor: pointer; border: none; background: linear-gradient(135deg, var(--cyan), var(--violet)); color: #090D1A; transition: transform 0.22s, box-shadow 0.22s; font-family: inherit; position: relative; overflow: hidden; letter-spacing: -0.01em; }
+    .btn-primary::after { content: ''; position: absolute; inset: 0; background: rgba(255,255,255,0); transition: background 0.2s; }
+    .btn-primary:hover { transform: translateY(-2px); box-shadow: 0 6px 28px rgba(0,242,254,0.38); }
+    .btn-primary:hover::after { background: rgba(255,255,255,0.11); }
+    .btn-primary:active { transform: translateY(0); }
+    .btn-primary:disabled { opacity: 0.5; cursor: not-allowed; transform: none; box-shadow: none; }
+    .btn-ghost { display: inline-flex; align-items: center; gap: 7px; padding: 9px 16px; border-radius: 10px; font-size: 13px; font-weight: 500; cursor: pointer; border: 1px solid rgba(255,255,255,0.09); background: transparent; color: rgba(255,255,255,0.5); transition: all 0.22s; font-family: inherit; }
+    .btn-ghost:hover { border-color: rgba(0,242,254,0.3); color: var(--cyan); background: rgba(0,242,254,0.05); }
+
+    .lang-pill { display: flex; gap: 3px; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.07); border-radius: 8px; padding: 3px; }
+    .lang-btn { padding: 3px 10px; border-radius: 5px; font-size: 11.5px; font-weight: 700; letter-spacing: 0.06em; cursor: pointer; border: none; background: transparent; color: rgba(255,255,255,0.32); transition: all 0.22s; font-family: inherit; }
+    .lang-btn.on { background: rgba(0,242,254,0.18); color: var(--cyan); }
+
+    /* Свотчи фона — кликабельные кружки */
+    .bg-swatch { width: 28px; height: 28px; border-radius: 50%; cursor: pointer; border: 2px solid transparent; transition: all 0.22s; flex-shrink: 0; }
+    .bg-swatch.on { border-color: var(--cyan); box-shadow: 0 0 0 2px rgba(0,242,254,0.22); }
+    .bg-swatch-transparent { background: conic-gradient(#888 0 25%, #fff 25% 50%, #888 50% 75%, #fff 75%); background-size: 8px 8px; }
+    .bg-swatch-white { background: #FFFFFF; }
+    .bg-swatch-gray  { background: linear-gradient(135deg, #E8E8E8, #C2C2C2); }
+    .bg-swatch-wood  { background: linear-gradient(135deg, #8B5E3C, #D4A96A, #7A4A1E); }
+
+    /* Кнопка удаления файла (стиль, без onmouse*) */
+    .btn-remove { position: absolute; top: 5px; right: 5px; width: 21px; height: 21px; background: rgba(0,0,0,0.68); border: none; border-radius: 50%; cursor: pointer; display: flex; align-items: center; justify-content: center; color: rgba(255,255,255,0.55); font-size: 10px; line-height: 1; transition: background 0.18s, color 0.18s; padding: 0; font-family: inherit; }
+    .btn-remove:hover { background: rgba(239,68,68,0.88); color: #fff; }
+
+    .product-collapse { max-height: 0; overflow: hidden; transition: max-height 0.4s ease; }
+    .product-collapse.open { max-height: 800px; }
+
+    #toast-wrap { position: fixed; bottom: 1.5rem; right: calc(var(--sidebar-w) + 1.25rem); z-index: 200; display: flex; flex-direction: column; gap: 10px; pointer-events: none; }
+    .toast { pointer-events: all; display: flex; align-items: flex-start; gap: 10px; padding: 12px 16px; border-radius: 10px; background: rgba(12,16,30,0.97); backdrop-filter: blur(18px); border: 1px solid rgba(255,255,255,0.07); max-width: 360px; font-size: 13px; line-height: 1.45; box-shadow: 0 8px 40px rgba(0,0,0,0.55); animation: toast-in 0.28s ease forwards; }
+    .toast.out { animation: toast-out 0.25s ease forwards; }
+    .toast-icon { font-size: 17px; flex-shrink: 0; margin-top: 1px; }
+    .toast-warning { border-left: 3px solid #FBBF24; }
+    .toast-error   { border-left: 3px solid #F87171; }
+    .toast-success { border-left: 3px solid #4ADE80; }
+    .toast-info    { border-left: 3px solid var(--cyan); }
+    .toast-close { margin-left: auto; flex-shrink: 0; background: none; border: none; color: rgba(255,255,255,0.25); cursor: pointer; font-size: 14px; padding: 0; line-height: 1; transition: color 0.18s; font-family: inherit; }
+    .toast-close:hover { color: rgba(255,255,255,0.6); }
+
+    .section-label { font-size: 10px; font-weight: 700; letter-spacing: 0.12em; text-transform: uppercase; color: rgba(0,242,254,0.55); display: flex; align-items: center; gap: 8px; margin-bottom: 1rem; }
+    .section-label::after { content: ''; flex: 1; height: 1px; background: rgba(0,242,254,0.10); }
+
+    .s-queued     { color: rgba(255,255,255,0.35); }
+    .s-processing { color: var(--cyan); }
+    .s-done       { color: #4ADE80; }
+    .s-error      { color: #F87171; }
+
+    #action-bar { display: none; align-items: center; justify-content: space-between; margin-bottom: 1.25rem; gap: 10px; flex-wrap: wrap; }
+    #action-bar.visible { display: flex; }
+    #files-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(172px, 1fr)); gap: 14px; }
+
+    @media (max-width: 720px) {
+      :root { --sidebar-w: 100vw; }
+      #sidebar { position: static; width: 100%; height: auto; border-left: none; border-top: 1px solid var(--glass-border); }
+      #main-content { margin-right: 0; }
+      #toast-wrap { right: 1rem; left: 1rem; }
+    }
+</style>
+</head>
+<body>
+
+  <!-- Фоновые орбы — атмосферное свечение -->
+  <div class="orb" style="top:-140px;left:-80px;width:560px;height:560px;background:radial-gradient(circle,rgba(0,242,254,0.06) 0%,transparent 68%);animation:float-orb 9s ease-in-out infinite;"></div>
+  <div class="orb" style="bottom:-180px;left:30%;width:480px;height:480px;background:radial-gradient(circle,rgba(79,172,254,0.05) 0%,transparent 70%);animation:float-orb 13s ease-in-out infinite reverse;"></div>
+  <div class="orb" style="top:40%;right:calc(var(--sidebar-w) + 40px);width:300px;height:300px;background:radial-gradient(circle,rgba(0,242,254,0.025) 0%,transparent 70%);animation:float-orb 17s ease-in-out infinite 2s;"></div>
+
+  <!-- Фиксированная шапка -->
+  <header id="app-header">
+    <div style="display:flex;align-items:center;gap:12px;">
+      <div style="width:38px;height:38px;border-radius:10px;flex-shrink:0;background:linear-gradient(135deg,#00F2FE,#4FACFE);display:flex;align-items:center;justify-content:center;box-shadow:0 4px 18px rgba(0,242,254,0.32);">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+          <rect x="3" y="3" width="18" height="18" rx="3" stroke="#090D1A" stroke-width="1.8" fill="none"/>
+          <circle cx="8.5" cy="8.5" r="1.5" fill="#090D1A"/>
+          <path d="M3.5 16.5L8 12l3 3 3-3.5 6.5 4.5" stroke="#090D1A" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+        </svg>
+      </div>
+      <div>
+        <div style="font-size:17px;font-weight:800;color:#FFF;line-height:1.15;letter-spacing:-0.025em;">WebReady<span class="grad-text">Pic</span></div>
+        <div data-i18n="tagline" style="font-size:11px;color:rgba(255,255,255,0.36);line-height:1.2;">Инновационная веб-подготовка графики</div>
+      </div>
+    </div>
+    <div style="display:flex;align-items:center;gap:14px;">
+      <div id="hdr-badge" style="display:none;align-items:center;gap:6px;font-size:12.5px;color:rgba(255,255,255,0.4);">
+        <span id="hdr-count" style="font-weight:800;color:var(--cyan);font-size:16px;">0</span>
+        <span data-i18n="filesInQueue">файлов в очереди</span>
+      </div>
+      <div class="lang-pill">
+        <button class="lang-btn on" id="lang-ru" data-lang-target="ru">RU</button>
+        <button class="lang-btn"    id="lang-en" data-lang-target="en">EN</button>
+      </div>
+    </div>
+  </header>
+
+  <!-- Контейнер тост-уведомлений -->
+  <div id="toast-wrap"></div>
+
+  <!-- Основная прокручиваемая область -->
+  <main id="main-content">
+
+    <!-- Зона перетаскивания -->
+    <div id="drop-zone" class="drop-zone" style="min-height:230px;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:2.5rem 2rem;margin-bottom:1.25rem;">
+      <div class="cloud-icon" style="margin-bottom:1.1rem;">
+        <svg width="64" height="64" viewBox="0 0 64 64" fill="none">
+          <path d="M48 40c4.4 0 8-3.6 8-8a8 8 0 00-7.3-7.97C47.5 18.7 42.1 14 36 14a12 12 0 00-11.7 6.9A8 8 0 008 28c0 4.4 3.6 8 8 8" stroke="url(#g1)" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+          <path d="M32 44V28M26 38l6-6 6 6" stroke="url(#g2)" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/>
+          <defs>
+            <linearGradient id="g1" x1="8" y1="14" x2="56" y2="40" gradientUnits="userSpaceOnUse"><stop stop-color="#00F2FE"/><stop offset="1" stop-color="#4FACFE"/></linearGradient>
+            <linearGradient id="g2" x1="26" y1="28" x2="38" y2="44" gradientUnits="userSpaceOnUse"><stop stop-color="#00F2FE"/><stop offset="1" stop-color="#4FACFE"/></linearGradient>
+          </defs>
+        </svg>
+      </div>
+      <h1 data-i18n="dropZoneTitle" style="font-size:18px;font-weight:700;color:#FFF;margin:0 0 6px;letter-spacing:-0.015em;">Перетащите изображения сюда</h1>
+      <p  data-i18n="dropZoneSubtitle" style="font-size:13px;color:rgba(255,255,255,0.38);margin:0 0 14px;">или кликните для выбора файлов</p>
+      <div style="display:inline-flex;align-items:center;gap:6px;padding:5px 14px;border-radius:20px;font-size:12px;background:rgba(0,242,254,0.07);border:1px solid rgba(0,242,254,0.2);color:rgba(0,242,254,0.65);">
+        <span data-i18n="dropZoneFormats">JPG, PNG, WebP, GIF — до 50 файлов</span>
+      </div>
+    </div>
+    <input type="file" id="file-input" accept="image/*" multiple style="position:absolute;width:1px;height:1px;opacity:0;pointer-events:none;">
+
+    <!-- Панель действий (появляется после добавления файлов) -->
+    <div id="action-bar">
+      <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
+        <button class="btn-primary" id="btn-process">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>
+          <span data-i18n="processAll">Обработать все</span>
+        </button>
+        <button class="btn-ghost" id="btn-clear">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M3 6h18M8 6V4h8v2M19 6l-1 14H6L5 6"/></svg>
+          <span data-i18n="clearAll">Очистить всё</span>
+        </button>
+      </div>
+      <button class="btn-primary" id="btn-zip" style="display:none;">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M7 10l5 5 5-5M12 15V3"/></svg>
+        <span data-i18n="downloadZip">Скачать ZIP-архив</span>
+      </button>
+    </div>
+
+    <!-- Сетка карточек файлов -->
+    <div id="files-grid"></div>
+  </main>
+
+  <!-- Правый сайдбар настроек (фиксирован при прокрутке) -->
+  <aside id="sidebar">
+    <div class="section-label"><span data-i18n="settingsTitle">Настройки</span></div>
+
+    <!-- Блок 1: Сжатие и Формат -->
+    <div class="glass" style="padding:1.1rem;margin-bottom:1rem;">
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:1rem;">
+        <span style="font-size:15px;">&#9889;</span>
+        <span data-i18n="compressionBlock" style="font-size:13px;font-weight:700;color:#FFF;">Сжатие и Формат</span>
+      </div>
+      <div style="margin-bottom:1rem;">
+        <div data-i18n="compressionPreset" style="font-size:10.5px;font-weight:600;color:rgba(255,255,255,0.38);margin-bottom:7px;letter-spacing:0.05em;text-transform:uppercase;">Степень сжатия</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:5px;">
+          <button class="opt-btn"    data-preset="light"   data-i18n="preset_light"  >Лёгкое</button>
+          <button class="opt-btn on" data-preset="optimal" data-i18n="preset_optimal">Оптимальное</button>
+          <button class="opt-btn"    data-preset="strong"  data-i18n="preset_strong" >Сильное</button>
+          <button class="opt-btn"    data-preset="extreme" data-i18n="preset_extreme">Экстремальное</button>
+        </div>
+      </div>
+      <div>
+        <div data-i18n="outputFormat" style="font-size:10.5px;font-weight:600;color:rgba(255,255,255,0.38);margin-bottom:7px;letter-spacing:0.05em;text-transform:uppercase;">Формат вывода</div>
+        <div style="display:flex;gap:5px;">
+          <button class="opt-btn on" data-format="webp" data-i18n="format_webp">WebP</button>
+          <button class="opt-btn"    data-format="jpeg" data-i18n="format_jpeg">JPEG</button>
+          <button class="opt-btn"    data-format="png"  data-i18n="format_png" >PNG</button>
+        </div>
+        <div id="format-hint" style="font-size:10.5px;color:rgba(255,255,255,0.28);margin-top:5px;line-height:1.4;" data-i18n="formatHintWebp">WebP — лучшее соотношение качества и размера</div>
+      </div>
+    </div>
+
+    <!-- Блок 2: Карточка товара -->
+    <div class="glass" style="padding:1.1rem;">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px;">
+        <div style="display:flex;align-items:center;gap:8px;">
+          <span style="font-size:15px;">&#128722;</span>
+          <span data-i18n="productCardBlock" style="font-size:13px;font-weight:700;color:#FFF;">Карточка товара</span>
+        </div>
+        <div class="toggle" id="toggle-product"><div class="toggle-track"></div><div class="toggle-thumb"></div></div>
+      </div>
+      <div data-i18n="productCardToggle" style="font-size:11.5px;color:rgba(255,255,255,0.28);margin-bottom:0.85rem;padding-left:24px;line-height:1.4;">Оптимизация под карточку товара</div>
+
+      <div class="product-collapse" id="product-collapse">
+        <!-- Соотношение сторон -->
+        <div style="margin-bottom:0.9rem;">
+          <div data-i18n="aspectRatio" style="font-size:10.5px;font-weight:600;color:rgba(255,255,255,0.38);margin-bottom:7px;letter-spacing:0.05em;text-transform:uppercase;">Пропорции</div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:5px;">
+            <button class="opt-btn on" data-ratio="1:1"      data-i18n="ratio_1_1"     >Квадрат 1:1</button>
+            <button class="opt-btn"    data-ratio="3:4"      data-i18n="ratio_3_4"     >Портрет 3:4</button>
+            <button class="opt-btn"    data-ratio="4:3"      data-i18n="ratio_4_3"     >Альбом 4:3</button>
+            <button class="opt-btn"    data-ratio="original" data-i18n="ratio_original">Оригинал</button>
+          </div>
+        </div>
+
+        <!-- Фон подложки -->
+        <div style="margin-bottom:0.9rem;">
+          <div data-i18n="background" style="font-size:10.5px;font-weight:600;color:rgba(255,255,255,0.38);margin-bottom:7px;letter-spacing:0.05em;text-transform:uppercase;">Фон подложки</div>
+          <div style="display:flex;gap:9px;align-items:center;margin-bottom:5px;">
+            <div class="bg-swatch bg-swatch-transparent on" data-bg="transparent" title="Прозрачный"></div>
+            <div class="bg-swatch bg-swatch-white"          data-bg="white"       title="Чистый белый"></div>
+            <div class="bg-swatch bg-swatch-gray"           data-bg="gray"        title="Студийный серый"></div>
+            <div class="bg-swatch bg-swatch-wood"           data-bg="wood"        title="Элегантное дерево"></div>
+          </div>
+          <div id="bg-label" data-i18n="bg_transparent" style="font-size:11px;color:rgba(0,242,254,0.7);font-weight:500;">Прозрачный</div>
+        </div>
+
+        <!-- Тумблер тени -->
+        <div style="display:flex;align-items:center;justify-content:space-between;">
+          <span data-i18n="shadow" style="font-size:12.5px;color:rgba(255,255,255,0.72);">Мягкая тень</span>
+          <div class="toggle" id="toggle-shadow"><div class="toggle-track"></div><div class="toggle-thumb"></div></div>
+        </div>
+      </div>
+    </div>
+
+    <div style="margin-top:1.5rem;text-align:center;">
+      <div style="font-size:10px;color:rgba(255,255,255,0.16);line-height:1.5;">WebReadyPic v1.0 · Локальная обработка<br>Ни один файл не покидает ваш браузер</div>
+    </div>
+  </aside>
+
+  <script>
+  'use strict';
+
+  // ================================================================
+  // СЛОВАРЬ ПЕРЕВОДОВ (i18n) — RU / EN
+  // ================================================================
+  const TRANSLATIONS = {
+    ru: {
+      tagline:          'Инновационная веб-подготовка графики',
+      dropZoneTitle:    'Перетащите изображения сюда',
+      dropZoneSubtitle: 'или кликните для выбора файлов',
+      dropZoneFormats:  'JPG, PNG, WebP, GIF — до 50 файлов',
+      settingsTitle:    'Настройки',
+      compressionBlock: 'Сжатие и Формат',
+      compressionPreset:'Степень сжатия',
+      outputFormat:     'Формат вывода',
+      preset_light:     'Лёгкое',
+      preset_optimal:   'Оптимальное',
+      preset_strong:    'Сильное',
+      preset_extreme:   'Экстремальное',
+      format_webp:      'WebP',
+      format_jpeg:      'JPEG',
+      format_png:       'PNG',
+      formatHintWebp:   'WebP — лучшее соотношение качества и размера',
+      formatHintJpeg:   'JPEG — максимальная совместимость с браузерами',
+      formatHintPng:    'PNG — без потерь, поддержка прозрачности',
+      productCardBlock: 'Карточка товара',
+      productCardToggle:'Оптимизация под карточку товара',
+      aspectRatio:      'Пропорции',
+      ratio_1_1:        'Квадрат 1:1',
+      ratio_3_4:        'Портрет 3:4',
+      ratio_4_3:        'Альбом 4:3',
+      ratio_original:   'Оригинал',
+      background:       'Фон подложки',
+      bg_transparent:   'Прозрачный',
+      bg_white:         'Чистый белый',
+      bg_gray:          'Студийный серый',
+      bg_wood:          'Элегантное дерево',
+      shadow:           'Мягкая тень',
+      processAll:       'Обработать все',
+      downloadZip:      'Скачать ZIP-архив',
+      clearAll:         'Очистить всё',
+      statusQueued:     'В очереди',
+      statusProcessing: 'Обработка',
+      statusDone:       'Готово',
+      statusError:      'Ошибка',
+      limitExceeded:    'Максимальный лимит — 50 файлов за раз.',
+      noFilesReady:     'Нет обработанных файлов для скачивания.',
+      filesInQueue:     'файлов в очереди',
+      processing:       'Идёт обработка…',
+    },
+    en: {
+      tagline:          'Innovative Web Graphics Preparation',
+      dropZoneTitle:    'Drop your images here',
+      dropZoneSubtitle: 'or click to browse files',
+      dropZoneFormats:  'JPG, PNG, WebP, GIF — up to 50 files',
+      settingsTitle:    'Settings',
+      compressionBlock: 'Compression & Format',
+      compressionPreset:'Compression Level',
+      outputFormat:     'Output Format',
+      preset_light:     'Light',
+      preset_optimal:   'Optimal',
+      preset_strong:    'Strong',
+      preset_extreme:   'Extreme',
+      format_webp:      'WebP',
+      format_jpeg:      'JPEG',
+      format_png:       'PNG',
+      formatHintWebp:   'WebP — best quality-to-size ratio',
+      formatHintJpeg:   'JPEG — maximum browser compatibility',
+      formatHintPng:    'PNG — lossless with transparency support',
+      productCardBlock: 'Product Card',
+      productCardToggle:'Optimize for product listing',
+      aspectRatio:      'Aspect Ratio',
+      ratio_1_1:        'Square 1:1',
+      ratio_3_4:        'Portrait 3:4',
+      ratio_4_3:        'Landscape 4:3',
+      ratio_original:   'Original',
+      background:       'Background',
+      bg_transparent:   'Transparent',
+      bg_white:         'Clean White',
+      bg_gray:          'Studio Gray',
+      bg_wood:          'Elegant Wood',
+      shadow:           'Soft Shadow',
+      processAll:       'Process All',
+      downloadZip:      'Download ZIP',
+      clearAll:         'Clear All',
+      statusQueued:     'Queued',
+      statusProcessing: 'Processing',
+      statusDone:       'Done',
+      statusError:      'Error',
+      limitExceeded:    'Maximum limit is 50 files at a time.',
+      noFilesReady:     'No processed files available for download.',
+      filesInQueue:     'files in queue',
+      processing:       'Processing…',
+    },
+  };
+
+  // ================================================================
+  // ImageService — ЯДРО ОБРАБОТКИ ИЗОБРАЖЕНИЙ
+  // Полная изоляция от DOM/UI. Методы — async/await.
+  // ================================================================
+  class ImageService {
+
+    // Пресеты: quality (0–1) + maxSide (px длинной стороны)
+    static PRESETS = {
+      light:   { quality: 0.85, maxSide: 2560 },
+      optimal: { quality: 0.75, maxSide: 1920 },
+      strong:  { quality: 0.60, maxSide: 1200 },
+      extreme: { quality: 0.45, maxSide: 800  },
+    };
+
+    // Главная точка входа: файл + опции → Promise<Blob>
+    async processFile(file, options) {
+      const {
+        preset      = 'optimal',
+        format      = 'webp',
+        productMode = false,
+        ratio       = '1:1',
+        background  = 'transparent',
+        shadow      = false,
+      } = options || {};
+
+      const cfg = ImageService.PRESETS[preset] || ImageService.PRESETS.optimal;
+      const { quality, maxSide } = cfg;
+
+      const dataUrl = await this._readFile(file);
+      const img     = await this._loadImage(dataUrl);
+      const canvas  = this._render(img, { maxSide, productMode, ratio, background, shadow });
+      const mime    = { webp: 'image/webp', jpeg: 'image/jpeg', png: 'image/png' }[format] || 'image/webp';
+      const q       = format === 'png' ? undefined : quality;
+      return this._toBlob(canvas, mime, q);
+    }
+
+    // FileReader.readAsDataURL → Promise<string>
+    _readFile(file) {
+      return new Promise(function(resolve, reject) {
+        var r = new FileReader();
+        r.onload  = function(e) { resolve(e.target.result); };
+        r.onerror = function()  { reject(new Error('Ошибка чтения: ' + file.name)); };
+        r.readAsDataURL(file);
+      });
+    }
+
+    // new Image().onload → Promise<HTMLImageElement>
+    _loadImage(src) {
+      return new Promise(function(resolve, reject) {
+        var img   = new Image();
+        img.onload  = function() { resolve(img); };
+        img.onerror = function() { reject(new Error('Не удалось декодировать изображение')); };
+        img.src = src;
+      });
+    }
+
+    // Рендерим изображение на офф-скрин Canvas
+    _render(img, opts) {
+      var maxSide     = opts.maxSide;
+      var productMode = opts.productMode;
+      var ratio       = opts.ratio;
+      var background  = opts.background;
+      var shadow      = opts.shadow;
+
+      var canvas = document.createElement('canvas');
+      var ctx    = canvas.getContext('2d');
+
+      if (productMode && ratio !== 'original') {
+        // Letterbox-центрирование с 10% безопасными отступами
+        var dims = this._dims(maxSide, ratio);
+        var w = dims.w, h = dims.h;
+        canvas.width  = w;
+        canvas.height = h;
+        this._drawBg(ctx, w, h, background);
+
+        var padX   = w * 0.10;
+        var padY   = h * 0.10;
+        var availW = w - padX * 2;
+        var availH = h - padY * 2;
+        var scale  = Math.min(availW / img.naturalWidth, availH / img.naturalHeight);
+        var drawW  = Math.round(img.naturalWidth  * scale);
+        var drawH  = Math.round(img.naturalHeight * scale);
+        var drawX  = Math.round((w - drawW) / 2);
+        var drawY  = Math.round((h - drawH) / 2);
+
+        if (shadow) { this._shadow(ctx, drawX, drawY, drawW, drawH); }
+        ctx.drawImage(img, drawX, drawY, drawW, drawH);
+
+      } else {
+        // Стандартный ресайз по длинной стороне
+        var longSide = Math.max(img.naturalWidth, img.naturalHeight);
+        var sc       = Math.min(1, maxSide / longSide);
+        var w2       = Math.round(img.naturalWidth  * sc);
+        var h2       = Math.round(img.naturalHeight * sc);
+        canvas.width  = w2;
+        canvas.height = h2;
+        if (background === 'white') { ctx.fillStyle = '#FFF'; ctx.fillRect(0, 0, w2, h2); }
+        ctx.drawImage(img, 0, 0, w2, h2);
+      }
+
+      return canvas;
+    }
+
+    // Вычисляет размеры холста по соотношению сторон
+    _dims(maxSide, ratio) {
+      if (ratio === '1:1') return { w: maxSide,                    h: maxSide };
+      if (ratio === '3:4') return { w: Math.round(maxSide * 0.75), h: maxSide };
+      if (ratio === '4:3') return { w: maxSide,                    h: Math.round(maxSide * 0.75) };
+      return { w: maxSide, h: maxSide };
+    }
+
+    // Рисует фон подложки
+    _drawBg(ctx, w, h, bg) {
+      if (bg === 'white') {
+        ctx.fillStyle = '#FFFFFF';
+        ctx.fillRect(0, 0, w, h);
+      } else if (bg === 'gray') {
+        var g = ctx.createLinearGradient(0, 0, 0, h);
+        g.addColorStop(0, '#F0F0F0'); g.addColorStop(0.5, '#DCDCDC'); g.addColorStop(1, '#C8C8C8');
+        ctx.fillStyle = g; ctx.fillRect(0, 0, w, h);
+      } else if (bg === 'wood') {
+        var gw = ctx.createLinearGradient(0, 0, w, h);
+        gw.addColorStop(0, '#6B3A2A'); gw.addColorStop(0.18, '#9C5D3B');
+        gw.addColorStop(0.38, '#D4956A'); gw.addColorStop(0.55, '#C17B4E');
+        gw.addColorStop(0.75, '#9A5A30'); gw.addColorStop(1, '#5C2E14');
+        ctx.fillStyle = gw; ctx.fillRect(0, 0, w, h);
+        ctx.save(); ctx.globalAlpha = 0.06; ctx.strokeStyle = '#FFE0B0'; ctx.lineWidth = 1;
+        for (var i = -h; i < w + h; i += 8) { ctx.beginPath(); ctx.moveTo(i, 0); ctx.lineTo(i + h, h); ctx.stroke(); }
+        ctx.restore();
+      } else {
+        ctx.clearRect(0, 0, w, h); // Прозрачный
+      }
+    }
+
+    // Рисует многослойную мягкую тень под объектом
+    _shadow(ctx, x, y, w, h) {
+      var cx = x + w / 2;
+      var sy = y + h * 0.95;
+      var rx = w * 0.38;
+      var ry = h * 0.04;
+      var layers = [{ blur: 30, alpha: 0.07 }, { blur: 17, alpha: 0.11 }, { blur: 8, alpha: 0.15 }];
+      ctx.save();
+      for (var i = 0; i < layers.length; i++) {
+        ctx.save();
+        ctx.filter      = 'blur(' + layers[i].blur + 'px)';
+        ctx.globalAlpha = layers[i].alpha;
+        ctx.fillStyle   = '#000';
+        ctx.beginPath(); ctx.ellipse(cx, sy, rx, ry, 0, 0, Math.PI * 2); ctx.fill();
+        ctx.restore();
+      }
+      ctx.restore();
+    }
+
+    // canvas.toBlob → Promise<Blob>
+    _toBlob(canvas, mime, quality) {
+      return new Promise(function(resolve, reject) {
+        canvas.toBlob(
+          function(blob) { blob ? resolve(blob) : reject(new Error('toBlob вернул null')); },
+          mime, quality
+        );
+      });
+    }
+  }
+
+  // ================================================================
+  // AppController — ОРКЕСТРАТОР: очередь, состояние, UI
+  // ================================================================
+  class AppController {
+
+    static MAX_FILES = 50;
+
+    constructor() {
+      this._svc    = new ImageService();
+      this._files  = new Map();
+      this._idSeq  = 0;
+      this._busy   = false;
+      this._lang   = 'ru';
+      this._cfg    = { preset: 'optimal', format: 'webp', productMode: false, ratio: '1:1', background: 'transparent', shadow: false };
+
+      this._dom();
+      this._bind();
+      this._syncAll();
+      this.setLang('ru');
+    }
+
+    // Кэшируем ссылки на DOM-элементы
+    _dom() {
+      this.dz         = document.getElementById('drop-zone');
+      this.fileInput  = document.getElementById('file-input');
+      this.grid       = document.getElementById('files-grid');
+      this.actionBar  = document.getElementById('action-bar');
+      this.btnZip     = document.getElementById('btn-zip');
+      this.btnProcess = document.getElementById('btn-process');
+      this.hdrBadge   = document.getElementById('hdr-badge');
+      this.hdrCount   = document.getElementById('hdr-count');
+      this.togProd    = document.getElementById('toggle-product');
+      this.collapse   = document.getElementById('product-collapse');
+      this.togShad    = document.getElementById('toggle-shadow');
+      this.bgLabel    = document.getElementById('bg-label');
+      this.fmtHint    = document.getElementById('format-hint');
+    }
+
+    // Привязка всех событий через делегирование (без inline onclick)
+    _bind() {
+      var self = this;
+
+      // ── Drop Zone: drag-and-drop ──
+      this.dz.addEventListener('dragover',  function(e) { e.preventDefault(); e.stopPropagation(); self.dz.classList.add('dz-active'); });
+      this.dz.addEventListener('dragleave', function(e) { if (!self.dz.contains(e.relatedTarget)) self.dz.classList.remove('dz-active'); });
+      this.dz.addEventListener('drop',      function(e) { e.preventDefault(); e.stopPropagation(); self.dz.classList.remove('dz-active'); self.addFiles(e.dataTransfer.files); });
+      this.dz.addEventListener('click',     function() { self.fileInput.click(); });
+
+      // ── Выбор файлов через диалог ──
+      this.fileInput.addEventListener('change', function(e) { self.addFiles(e.target.files); e.target.value = ''; });
+
+      // ── Глобальная блокировка drop за пределами drop-zone ──
+      document.addEventListener('dragover', function(e) { e.preventDefault(); });
+      document.addEventListener('drop',     function(e) { if (!self.dz.contains(e.target)) e.preventDefault(); });
+
+      // ── Кнопки в панели действий ──
+      this.btnProcess.addEventListener('click', function() { self.processAll(); });
+      document.getElementById('btn-clear').addEventListener('click', function() { self.clearAll(); });
+      this.btnZip.addEventListener('click', function() { self.downloadZip(); });
+
+      // ── Делегирование: клик по кнопке удаления карточки (data-remove) ──
+      this.grid.addEventListener('click', function(e) {
+        var btn = e.target.closest('[data-remove]');
+        if (btn) { self.removeFile(btn.getAttribute('data-remove')); }
+      });
+
+      // ── Делегирование: клик по тосту (закрыть) ──
+      document.getElementById('toast-wrap').addEventListener('click', function(e) {
+        var btn = e.target.closest('.toast-close');
+        if (btn) {
+          var toast = btn.closest('.toast');
+          if (toast) toast.remove();
+        }
+      });
+
+      // ── Пресеты сжатия ──
+      document.querySelectorAll('[data-preset]').forEach(function(btn) {
+        btn.addEventListener('click', function() { self.setPreset(btn.getAttribute('data-preset')); });
+      });
+
+      // ── Форматы вывода ──
+      document.querySelectorAll('[data-format]').forEach(function(btn) {
+        btn.addEventListener('click', function() { self.setFormat(btn.getAttribute('data-format')); });
+      });
+
+      // ── Тумблер карточки товара ──
+      this.togProd.addEventListener('click', function() { self.toggleProductMode(); });
+
+      // ── Соотношения сторон ──
+      document.querySelectorAll('[data-ratio]').forEach(function(btn) {
+        btn.addEventListener('click', function() { self.setRatio(btn.getAttribute('data-ratio')); });
+      });
+
+      // ── Свотчи фона ──
+      document.querySelectorAll('[data-bg]').forEach(function(el) {
+        el.addEventListener('click', function() { self.setBackground(el.getAttribute('data-bg')); });
+      });
+
+      // ── Тумблер тени ──
+      this.togShad.addEventListener('click', function() { self.toggleShadow(); });
+
+      // ── Переключатель языков ──
+      document.querySelectorAll('[data-lang-target]').forEach(function(btn) {
+        btn.addEventListener('click', function() { self.setLang(btn.getAttribute('data-lang-target')); });
+      });
+    }
+
+    // Добавляет файлы в очередь (с проверкой лимита)
+    addFiles(list) {
+      var self      = this;
+      var images    = Array.from(list).filter(function(f) { return f.type.startsWith('image/'); });
+      var available = AppController.MAX_FILES - this._files.size;
+
+      if (available <= 0) { this._toast(TRANSLATIONS[this._lang].limitExceeded, 'warning'); return; }
+
+      var toAdd = images.slice(0, available);
+      if (images.length > available) { this._toast(TRANSLATIONS[this._lang].limitExceeded, 'warning'); }
+
+      toAdd.forEach(function(file) {
+        var id = 'f' + (++self._idSeq);
+        var entry = {
+          id:           id,
+          file:         file,
+          status:       'queued',
+          originalSize: file.size,
+          resultBlob:   null,
+          resultSize:   0,
+          errMsg:       '',
+          thumbUrl:     URL.createObjectURL(file),
+          idx:          self._idSeq,
+        };
+        self._files.set(id, entry);
+        self._appendCard(entry);
+      });
+
+      if (toAdd.length > 0) { this._syncUI(); }
+    }
+
+    // Последовательная обработка всех файлов в очереди
+    async processAll() {
+      if (this._busy) return;
+      this._busy = true;
+      this.btnProcess.disabled = true;
+      this.btnProcess.querySelector('span').textContent = TRANSLATIONS[this._lang].processing;
+
+      var queued = Array.from(this._files.values()).filter(function(e) { return e.status === 'queued'; });
+
+      for (var i = 0; i < queued.length; i++) {
+        var entry = queued[i];
+        entry.status = 'processing';
+        this._refreshCard(entry.id);
+        try {
+          var blob         = await this._svc.processFile(entry.file, Object.assign({}, this._cfg));
+          entry.status     = 'done';
+          entry.resultBlob = blob;
+          entry.resultSize = blob.size;
+        } catch (err) {
+          entry.status = 'error';
+          entry.errMsg = err.message;
+          console.error('[WebReadyPic]', entry.file.name, err);
+        }
+        this._refreshCard(entry.id);
+      }
+
+      this._busy = false;
+      this.btnProcess.disabled = false;
+      this.btnProcess.querySelector('span').textContent = TRANSLATIONS[this._lang].processAll;
+      this._syncUI();
+    }
+
+    // Скачивает ZIP со всеми обработанными файлами
+    async downloadZip() {
+      var done = Array.from(this._files.values()).filter(function(e) { return e.status === 'done' && e.resultBlob; });
+      if (!done.length) { this._toast(TRANSLATIONS[this._lang].noFilesReady, 'warning'); return; }
+      if (typeof JSZip === 'undefined') { this._toast('JSZip не загружен. Проверьте интернет.', 'error'); return; }
+
+      var zip = new JSZip();
+      var ext = this._cfg.format === 'jpeg' ? 'jpg' : this._cfg.format;
+      done.forEach(function(e) {
+        var base = e.file.name.replace(/.[^/.]+$/, '');
+        zip.file(base + '.' + ext, e.resultBlob);
+      });
+
+      var zipBlob = await zip.generateAsync({ type: 'blob', compression: 'DEFLATE', compressionOptions: { level: 6 } });
+      var a = document.createElement('a');
+      a.href     = URL.createObjectURL(zipBlob);
+      a.download = 'WebReadyPic_' + new Date().toISOString().slice(0, 10) + '.zip';
+      a.click();
+      setTimeout(function() { URL.revokeObjectURL(a.href); }, 60000);
+    }
+
+    // Удаляет файл с анимацией
+    removeFile(id) {
+      var entry = this._files.get(id);
+      if (!entry) return;
+      URL.revokeObjectURL(entry.thumbUrl);
+      this._files.delete(id);
+      var card = document.getElementById('card-' + id);
+      if (card) {
+        card.style.transition = 'opacity 0.24s, transform 0.24s';
+        card.style.opacity    = '0';
+        card.style.transform  = 'scale(0.82)';
+        setTimeout(function() { card.remove(); }, 250);
+      }
+      this._syncUI();
+    }
+
+    // Очищает очередь и галерею
+    clearAll() {
+      this._files.forEach(function(e) { URL.revokeObjectURL(e.thumbUrl); });
+      this._files.clear();
+      this.grid.innerHTML = '';
+      this._syncUI();
+    }
+
+    // ── Мутаторы настроек ──
+
+    setPreset(p) { this._cfg.preset = p; this._group('[data-preset]', function(b) { return b.dataset.preset === p; }); }
+
+    setFormat(f) {
+      this._cfg.format = f;
+      this._group('[data-format]', function(b) { return b.dataset.format === f; });
+      var hints = { webp: 'formatHintWebp', jpeg: 'formatHintJpeg', png: 'formatHintPng' };
+      var key = hints[f];
+      if (this.fmtHint && key) { this.fmtHint.dataset.i18n = key; this.fmtHint.textContent = TRANSLATIONS[this._lang][key]; }
+    }
+
+    toggleProductMode() {
+      this._cfg.productMode = !this._cfg.productMode;
+      this.togProd.classList.toggle('on',  this._cfg.productMode);
+      this.collapse.classList.toggle('open', this._cfg.productMode);
+    }
+
+    setRatio(r) { this._cfg.ratio = r; this._group('[data-ratio]', function(b) { return b.dataset.ratio === r; }); }
+
+    setBackground(bg) {
+      this._cfg.background = bg;
+      document.querySelectorAll('[data-bg]').forEach(function(el) { el.classList.toggle('on', el.dataset.bg === bg); });
+      var keys = { transparent: 'bg_transparent', white: 'bg_white', gray: 'bg_gray', wood: 'bg_wood' };
+      var key = keys[bg] || 'bg_transparent';
+      if (this.bgLabel) { this.bgLabel.dataset.i18n = key; this.bgLabel.textContent = TRANSLATIONS[this._lang][key]; }
+    }
+
+    toggleShadow() { this._cfg.shadow = !this._cfg.shadow; this.togShad.classList.toggle('on', this._cfg.shadow); }
+
+    // ── Интернационализация ──
+
+    setLang(lang) {
+      this._lang = lang;
+      document.documentElement.setAttribute('lang', lang);
+      document.getElementById('lang-ru').classList.toggle('on', lang === 'ru');
+      document.getElementById('lang-en').classList.toggle('on', lang === 'en');
+      this._translate();
+    }
+
+    _translate() {
+      var t = TRANSLATIONS[this._lang];
+      document.querySelectorAll('[data-i18n]').forEach(function(el) {
+        var key = el.dataset.i18n;
+        if (Object.prototype.hasOwnProperty.call(t, key)) el.textContent = t[key];
+      });
+    }
+
+    // Синхронизирует шапку, панель, ZIP-кнопку
+    _syncUI() {
+      var total = this._files.size;
+      var done  = Array.from(this._files.values()).filter(function(e) { return e.status === 'done'; }).length;
+      this.hdrBadge.style.display = total > 0 ? 'flex' : 'none';
+      this.hdrCount.textContent   = String(total);
+      this.actionBar.classList.toggle('visible', total > 0);
+      this.btnZip.style.display = done > 0 ? 'inline-flex' : 'none';
+    }
+
+    // Синхронизирует кнопки-опции с текущими _cfg
+    _syncAll() {
+      this._group('[data-preset]', function(b) { return b.dataset.preset === 'optimal'; });
+      this._group('[data-format]', function(b) { return b.dataset.format === 'webp'; });
+      this._group('[data-ratio]',  function(b) { return b.dataset.ratio  === '1:1'; });
+      document.querySelectorAll('[data-bg]').forEach(function(el) { el.classList.toggle('on', el.dataset.bg === 'transparent'); });
+    }
+
+    // Переключает класс 'on' на группе элементов
+    _group(sel, pred) {
+      document.querySelectorAll(sel).forEach(function(el) { el.classList.toggle('on', pred(el)); });
+    }
+
+    // Добавляет карточку файла в сетку
+    _appendCard(entry) {
+      var card     = document.createElement('div');
+      card.id      = 'card-' + entry.id;
+      card.className = 'file-card glass';
+      card.style.setProperty('--i', String(Math.min(entry.idx - 1, 9)));
+      card.innerHTML = this._cardHTML(entry);
+      this.grid.appendChild(card);
+    }
+
+    // Перерисовывает карточку при смене статуса
+    _refreshCard(id) {
+      var card  = document.getElementById('card-' + id);
+      var entry = this._files.get(id);
+      if (!card || !entry) return;
+      card.innerHTML = this._cardHTML(entry);
+    }
+
+    // Генерирует innerHTML карточки файла
+    // АРХИТЕКТУРНО ВАЖНО: кнопка удаления использует data-remove (без onclick с кавычками)
+    _cardHTML(entry) {
+      var t = TRANSLATIONS[this._lang];
+      var id          = entry.id;
+      var status      = entry.status;
+      var file        = entry.file;
+      var thumbUrl    = entry.thumbUrl;
+      var origSize    = entry.originalSize;
+      var resultSize  = entry.resultSize;
+      var errMsg      = entry.errMsg;
+
+      var sc = {
+        queued:     { cls: 's-queued',     icon: '&#9203;', label: t.statusQueued },
+        processing: { cls: 's-processing', icon: '',        label: t.statusProcessing },
+        done:       { cls: 's-done',       icon: '&#9989;', label: t.statusDone },
+        error:      { cls: 's-error',      icon: '&#10060;',label: t.statusError },
+      }[status] || { cls: 's-queued', icon: '&#9203;', label: t.statusQueued };
+
+      // Форматирование размера в KB/MB
+      function fmt(b) { return b < 1048576 ? (b/1024).toFixed(1)+' KB' : (b/1048576).toFixed(2)+' MB'; }
+
+      var savings = (status === 'done' && resultSize) ? Math.round((1 - resultSize / origSize) * 100) : null;
+      var name = this._esc(file.name);
+      var shortName = file.name.length > 22 ? file.name.slice(0, 20) + '...' : file.name;
+      shortName = this._esc(shortName);
+
+      // Размерный блок (показываем только у готовых файлов)
+      var sizeBlock = '';
+      if (status === 'done' && savings !== null) {
+        sizeBlock = '<div style="font-size:11px;color:rgba(255,255,255,0.36);display:flex;gap:3px;align-items:center;flex-wrap:wrap;margin-top:2px;">'
+          + '<span>' + fmt(origSize) + '</span>'
+          + '<span style="color:rgba(255,255,255,0.2);">&#8594;</span>'
+          + '<span style="color:#4ADE80;font-weight:600;">' + fmt(resultSize) + '</span>'
+          + '<span style="color:var(--cyan);font-weight:700;margin-left:1px;">&#8722;' + savings + '%</span>'
+          + '</div>';
+      }
+
+      // Блок ошибки
+      var errBlock = '';
+      if (status === 'error') {
+        errBlock = '<div style="font-size:10.5px;color:#F87171;margin-top:2px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="' + this._esc(errMsg || '') + '">'
+          + this._esc((errMsg || 'Ошибка').slice(0, 42)) + '</div>';
+      }
+
+      // Строка статуса
+      var statusRow = '<div class="' + sc.cls + '" style="font-size:11px;display:flex;align-items:center;gap:5px;margin-bottom:5px;">'
+        + (status === 'processing' ? '<div class="spinner"></div>' : '<span style="font-size:12px;">' + sc.icon + '</span>')
+        + '<span>' + sc.label + '</span>'
+        + '</div>';
+
+      // Шиммер-полоска (только при обработке)
+      var shimmer = status === 'processing' ? '<div class="shimmer-bar"></div>' : '';
+
+      // Кнопка удаления — data-remove вместо inline onclick
+      var removeBtn = '<button class="btn-remove" data-remove="' + id + '" title="Удалить">&#10005;</button>';
+
+      return '<div style="padding:11px;">'
+        + '<div style="position:relative;margin-bottom:9px;">'
+        +   '<img class="file-card-thumb" src="' + thumbUrl + '" alt="' + name + '" loading="lazy">'
+        +   removeBtn
+        + '</div>'
+        + '<div style="font-size:12px;font-weight:500;color:#E2E8F0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-bottom:5px;" title="' + name + '">' + shortName + '</div>'
+        + statusRow
+        + shimmer
+        + sizeBlock
+        + errBlock
+        + '</div>';
+    }
+
+    // Экранирование HTML (защита от XSS при именах файлов)
+    _esc(str) {
+      return String(str)
+        .replace(/&/g, '&amp;').replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+    }
+
+    // Тост-уведомление с автоудалением
+    _toast(msg, type, duration) {
+      if (!type) type = 'info';
+      if (!duration) duration = 4500;
+      var icons = { info: 'ℹ️', warning: '⚠️', error: '❌', success: '✅' };
+      var wrap  = document.getElementById('toast-wrap');
+      var el    = document.createElement('div');
+      el.className = 'toast toast-' + type;
+
+      var icon = document.createElement('span');
+      icon.className   = 'toast-icon';
+      icon.textContent = icons[type] || 'ℹ️';
+
+      var text = document.createElement('span');
+      text.style.cssText = 'color:rgba(255,255,255,0.82);flex:1;line-height:1.45;';
+      text.textContent   = msg;
+
+      var closeBtn = document.createElement('button');
+      closeBtn.className   = 'toast-close';
+      closeBtn.textContent = '✕';
+
+      el.appendChild(icon);
+      el.appendChild(text);
+      el.appendChild(closeBtn);
+      wrap.appendChild(el);
+
+      // Автоудаление с анимацией
+      setTimeout(function() {
+        el.classList.add('out');
+        el.addEventListener('animationend', function() { el.remove(); }, { once: true });
+      }, duration);
+    }
+  }
+
+  // ================================================================
+  // ИНИЦИАЛИЗАЦИЯ — запуск после полной загрузки DOM
+  // ================================================================
+  document.addEventListener('DOMContentLoaded', function() {
+    window.app = new AppController();
+  });
+  </script>
+</body>
+</html>
