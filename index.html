@@ -116,8 +116,10 @@
       background-size: 8px 8px;
     }
     .bg-swatch-white { background: #FFFFFF; }
-    .bg-swatch-gray  { background: linear-gradient(135deg, #475569, #1E293B); }
-    .bg-swatch-beige  { background: linear-gradient(135deg, #F5F5DC, #D2B48C); }
+    .bg-swatch-podium { background: radial-gradient(circle, #f8f9fa, #e0e0e0); }
+    .bg-swatch-studio { background: linear-gradient(135deg, #f0f0f0, #c8c8c8); }
+    .bg-swatch-minimal { background: #FAFAFA; border: 1px solid rgba(0,0,0,0.1) !important; }
+    .bg-swatch-dark { background: linear-gradient(135deg, #2b2d31, #1e1f22); }
     
     .bg-swatch {
       border: 2px solid transparent;
@@ -285,16 +287,17 @@
     </div>
 
     <div class="flex items-center gap-4">
-      <div id="hdr-badge" class="hidden md:flex items-center gap-1.5 text-xs text-slate-400 bg-slate-900/40 px-2.5 py-1.5 rounded-lg border border-white/5">
-        <span id="hdr-count" class="font-extrabold text-cyan-400 text-sm leading-none">0</span>
-        <span data-i18n="filesInQueue">файлов в очереди</span>
+        <div id="hdr-badge" class="hidden md:flex items-center gap-1.5 text-xs text-slate-400 bg-slate-900/40 px-2.5 py-1.5 rounded-lg border border-white/5">
+          <span id="hdr-count" class="font-extrabold text-cyan-400 text-sm leading-none">0</span>
+          <span data-i18n="filesInQueue">файлов в очереди</span>
+        </div>
+        <div class="lang-pill flex p-1 bg-slate-950/80 border border-white/5 rounded-xl">
+          <button class="lang-btn px-3 py-1 text-[10px] font-bold rounded-lg text-slate-400 transition" id="lang-ua" data-lang-target="ua">UA</button>
+          <button class="lang-btn px-3 py-1 text-[10px] font-bold rounded-lg text-slate-400 transition" id="lang-ru" data-lang-target="ru">RU</button>
+          <button class="lang-btn px-3 py-1 text-[10px] font-bold rounded-lg text-slate-400 transition" id="lang-en" data-lang-target="en">EN</button>
+        </div>
       </div>
-      <div class="lang-pill flex p-1 bg-slate-950/80 border border-white/5 rounded-xl">
-        <button class="lang-btn px-3 py-1 text-[10px] font-bold rounded-lg text-slate-400 transition" id="lang-ru" data-lang-target="ru">RU</button>
-        <button class="lang-btn px-3 py-1 text-[10px] font-bold rounded-lg text-slate-400 transition" id="lang-en" data-lang-target="en">EN</button>
-      </div>
-    </div>
-  </header>
+    </header>
 
   <!-- Toast Notification Wrapper -->
   <div id="toast-wrap"></div>
@@ -510,12 +513,12 @@
               <div>
                 <div data-i18n="background" class="text-[10px] font-extrabold text-slate-400 mb-2.5 tracking-wider uppercase font-outfit">Фон подложки</div>
                 <div class="flex gap-3 items-center mb-1.5">
-                  <div class="bg-swatch w-7 h-7 rounded-full cursor-pointer border-2 border-transparent transition bg-swatch-transparent" data-bg="transparent" title="Прозрачный"></div>
-                  <div class="bg-swatch w-7 h-7 rounded-full cursor-pointer border-2 border-transparent transition bg-swatch-white" data-bg="white" title="Чистый белый"></div>
-                  <div class="bg-swatch w-7 h-7 rounded-full cursor-pointer border-2 border-transparent transition bg-swatch-gray" data-bg="gray" title="Студийный серый"></div>
-                  <div class="bg-swatch w-7 h-7 rounded-full cursor-pointer border-2 border-transparent transition bg-swatch-beige" data-bg="beige" title="Бежевый"></div>
+                  <div class="bg-swatch w-7 h-7 rounded-full cursor-pointer border-2 border-transparent transition bg-swatch-podium" data-bg="podium" title="Профессиональный подиум"></div>
+                  <div class="bg-swatch w-7 h-7 rounded-full cursor-pointer border-2 border-transparent transition bg-swatch-studio" data-bg="studio" title="Студийный градиент"></div>
+                  <div class="bg-swatch w-7 h-7 rounded-full cursor-pointer border-2 border-transparent transition bg-swatch-minimal" data-bg="minimal" title="Минимализм (светлый)"></div>
+                  <div class="bg-swatch w-7 h-7 rounded-full cursor-pointer border-2 border-transparent transition bg-swatch-dark" data-bg="dark" title="Тёмный контраст"></div>
                 </div>
-                <div id="bg-label" data-i18n="bg_transparent" class="text-[11px] text-cyan-400 font-bold">Прозрачный</div>
+                <div id="bg-label" data-i18n="bg_podium" class="text-[11px] text-cyan-400 font-bold">Профессиональный подиум</div>
               </div>
 
               <!-- Soft Shadow Toggle -->
@@ -544,9 +547,65 @@
   'use strict';
 
   // ================================================================
-  // СЛОВАРЬ ПЕРЕВОДОВ (i18n) — RU / EN
+  // СЛОВАРЬ ПЕРЕВОДОВ (i18n) — UA / RU / EN
   // ================================================================
   const TRANSLATIONS = {
+    ua: {
+      tagline:          'Інноваційна веб-підготовка графіки',
+      dropZoneTitle:    'Перетягніть <span class="text-transparent bg-clip-text bg-gradient-to-r from-violet-400 via-indigo-300 to-cyan-400">зображення</span> сюди',
+      dropZoneSubtitle: 'або клікніть для вибору файлів',
+      dropZoneFormats:  'JPG, PNG, WebP, GIF — до 50 файлів',
+      settingsTitle:    'Налаштування',
+      compressionBlock: 'Стиснення і Формат',
+      compressionPreset:'Ступінь стиснення',
+      outputFormat:     'Формат виводу',
+      preset_light:     'Легке',
+      preset_optimal:   'Оптимальне',
+      preset_strong:    'Сильне',
+      preset_extreme:   'Екстремальне',
+      format_webp:      'WebP',
+      format_jpeg:      'JPEG',
+      format_png:       'PNG',
+      formatHintWebp:   'WebP — найкраще співвідношення якості та розміру',
+      formatHintJpeg:   'JPEG — максимальна сумісність з браузерами',
+      formatHintPng:    'PNG — без втрат, підтримка прозорості',
+      productCardBlock: 'Картка товару',
+      productCardToggle:'Оптимізація під картку товару',
+      aspectRatio:      'Пропорції',
+      ratio_1_1:        'Квадрат 1:1',
+      ratio_3_4:        'Портрет 3:4',
+      ratio_4_3:        'Альбом 4:3',
+      ratio_original:   'Оригінал',
+      background:       'Фон підложки',
+      bg_podium:        'Професійний подіум',
+      bg_studio:        'Студійний градієнт',
+      bg_minimal:       'Мінімалізм (світлий)',
+      bg_dark:          'Темний контраст',
+      shadow:           'М\'яка тінь',
+      processAll:       'Обробити всі',
+      downloadZip:      'Завантажити ZIP-архів',
+      clearAll:         'Очистити все',
+      statusQueued:     'В черзі',
+      statusProcessing: 'Обробка',
+      statusDone:       'Готово',
+      statusError:      'Помилка',
+      limitExceeded:    'Максимальний ліміт — 50 файлів за раз.',
+      noFilesReady:     'Немає оброблених файлів для завантаження.',
+      filesInQueue:     'файлів в черзі',
+      processing:       'Йде обробка…',
+      // UI / Metrics
+      statusSystemReady: 'SYSTEM READY',
+      statusAiProcessing: 'AI PROCESSING...',
+      aiLoading:        'ЗАВАНТАЖЕННЯ ШІ',
+      aiRemoving:       'ВИДАЛЕННЯ ФОНУ',
+      speedMetricLabel:  'Швидкість обробки',
+      modelMetricLabel:  'Модель нейромережі',
+      savingMetricLabel: 'Зекономлено місця',
+      btnSeo:           'Створити SEO-картку (AI)',
+      seoAnalyzing:     '✨ AI аналізує товар...',
+      btnCopy:          'Скопіювати текст',
+      toastCopied:      'Текст скопійовано'
+    },
     ru: {
       tagline:          'Инновационная веб-подготовка графики',
       dropZoneTitle:    'Перетащите <span class="text-transparent bg-clip-text bg-gradient-to-r from-violet-400 via-indigo-300 to-cyan-400">изображения</span> сюда',
@@ -574,10 +633,10 @@
       ratio_4_3:        'Альбом 4:3',
       ratio_original:   'Оригинал',
       background:       'Фон подложки',
-      bg_transparent:   'Прозрачный',
-      bg_white:         'Чистый белый',
-      bg_gray:          'Студийный серый',
-      bg_beige:         'Бежевый',
+      bg_podium:        'Профессиональный подиум',
+      bg_studio:        'Студийный градиент',
+      bg_minimal:       'Минимализм (светлый)',
+      bg_dark:          'Тёмный контраст',
       shadow:           'Мягкая тень',
       processAll:       'Обработать все',
       downloadZip:      'Скачать ZIP-архив',
@@ -598,6 +657,10 @@
       speedMetricLabel:  'Скорость обработки',
       modelMetricLabel:  'Модель нейросети',
       savingMetricLabel: 'Сэкономлено места',
+      btnSeo:           'Сгенерировать SEO-карточку (AI)',
+      seoAnalyzing:     '✨ AI анализирует товар...',
+      btnCopy:          'Скопировать текст',
+      toastCopied:      'Текст скопирован'
     },
     en: {
       tagline:          'Innovative Web Graphics Preparation',
@@ -626,10 +689,10 @@
       ratio_4_3:        'Landscape 4:3',
       ratio_original:   'Original',
       background:       'Background',
-      bg_transparent:   'Transparent',
-      bg_white:         'Clean White',
-      bg_gray:          'Studio Gray',
-      bg_beige:         'Beige',
+      bg_podium:        'Professional Podium',
+      bg_studio:        'Studio Gradient',
+      bg_minimal:       'Minimal (Light)',
+      bg_dark:          'Dark Contrast',
       shadow:           'Soft Shadow',
       processAll:       'Process All',
       downloadZip:      'Download ZIP',
@@ -650,6 +713,10 @@
       speedMetricLabel:  'Engine Speed',
       modelMetricLabel:  'AI Model',
       savingMetricLabel: 'Space Saved',
+      btnSeo:           'Generate SEO Card (AI)',
+      seoAnalyzing:     '✨ AI is analyzing product...',
+      btnCopy:          'Copy Text',
+      toastCopied:      'Text copied'
     },
   };
 
@@ -791,9 +858,9 @@
         for (var i = 0; i < pixelCount; i++) {
           var alpha = maskData[i * channels];
 
-          // Сглаживаем артефакты: отсекаем почти прозрачный мусор, усиливаем почти непрозрачный
-          if (alpha < 15) alpha = 0;
-          else if (alpha > 240) alpha = 255;
+          // Максимальное сглаживание: убираем только откровенный мусор (alpha < 5)
+          if (alpha < 5) alpha = 0;
+          else if (alpha > 250) alpha = 255;
 
           pixels[i * 4 + 3] = alpha;
 
@@ -808,6 +875,16 @@
           }
         }
         outCtx.putImageData(imgData, 0, 0);
+
+        // Применяем 1px Blur (сглаживание артефактов)
+        // Для этого используем временный canvas и нативные фильтры
+        var blurTmp = document.createElement('canvas');
+        blurTmp.width = W; blurTmp.height = H;
+        blurTmp.getContext('2d').putImageData(imgData, 0, 0);
+        outCtx.clearRect(0, 0, W, H);
+        outCtx.filter = 'blur(1px)';
+        outCtx.drawImage(blurTmp, 0, 0);
+        outCtx.filter = 'none';
 
         // Если на изображении остался объект, обрезаем холст точно по его границам
         if (maxX >= minX && maxY >= minY) {
@@ -928,18 +1005,25 @@
         var drawY  = Math.round((h - drawH) / 2);
 
         if (shadow) {
-          ctx.shadowColor = 'rgba(0,0,0,0.15)';
-          ctx.shadowBlur = 20;
-          ctx.shadowOffsetX = 0;
-          ctx.shadowOffsetY = 8;
+          // Мягкая контактная тень (эллипс у основания)
+          ctx.save();
+          var cx = drawX + drawW / 2;
+          var cy = drawY + drawH - drawH * 0.03; // чуть выше нижней грани
+          var rx = drawW * 0.45; // ширина тени
+          var ry = drawH * 0.08; // высота тени
+          
+          var shGrad = ctx.createRadialGradient(cx, cy, 0, cx, cy, rx);
+          shGrad.addColorStop(0, 'rgba(0,0,0,0.4)');
+          shGrad.addColorStop(0.3, 'rgba(0,0,0,0.15)');
+          shGrad.addColorStop(1, 'rgba(0,0,0,0)');
+          
+          ctx.fillStyle = shGrad;
+          ctx.beginPath();
+          ctx.ellipse(cx, cy, rx, ry, 0, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.restore();
         }
         ctx.drawImage(img, drawX, drawY, drawW, drawH);
-        if (shadow) {
-          ctx.shadowColor = 'transparent';
-          ctx.shadowBlur = 0;
-          ctx.shadowOffsetX = 0;
-          ctx.shadowOffsetY = 0;
-        }
 
       } else {
         // Стандартный ресайз по длинной стороне
@@ -966,18 +1050,30 @@
 
     // Рисует фон подложки
     _drawBg(ctx, w, h, bg) {
-      if (bg === 'white') {
-        ctx.fillStyle = '#FFFFFF';
+      if (bg === 'podium') {
+        // Профессиональный подиум (радиальный градиент + линия горизонта)
+        var grad = ctx.createRadialGradient(w/2, h/2 - h*0.1, h*0.1, w/2, h/2, Math.max(w, h));
+        grad.addColorStop(0, '#FFFFFF');
+        grad.addColorStop(0.6, '#F0F2F5');
+        grad.addColorStop(1, '#E2E6EA');
+        ctx.fillStyle = grad;
         ctx.fillRect(0, 0, w, h);
-      } else if (bg === 'gray') {
+        // Линия подиума
+        ctx.fillStyle = 'rgba(255,255,255,0.4)';
+        ctx.fillRect(0, h * 0.75, w, h * 0.25);
+      } else if (bg === 'studio') {
         var g = ctx.createLinearGradient(0, 0, 0, h);
-        g.addColorStop(0, '#F0F0F0'); g.addColorStop(0.5, '#DCDCDC'); g.addColorStop(1, '#C8C8C8');
+        g.addColorStop(0, '#F8F9FA'); g.addColorStop(0.5, '#E9ECEF'); g.addColorStop(1, '#CED4DA');
         ctx.fillStyle = g; ctx.fillRect(0, 0, w, h);
-      } else if (bg === 'beige') {
-        ctx.fillStyle = '#F5F5DC';
+      } else if (bg === 'minimal') {
+        ctx.fillStyle = '#FAFAFA';
         ctx.fillRect(0, 0, w, h);
+      } else if (bg === 'dark') {
+        var gd = ctx.createLinearGradient(0, 0, 0, h);
+        gd.addColorStop(0, '#2b2d31'); gd.addColorStop(1, '#1e1f22');
+        ctx.fillStyle = gd; ctx.fillRect(0, 0, w, h);
       } else {
-        ctx.clearRect(0, 0, w, h); // Прозрачный
+        ctx.clearRect(0, 0, w, h);
       }
     }
 
@@ -1256,8 +1352,8 @@
     setBackground(bg) {
       this._cfg.background = bg;
       document.querySelectorAll('[data-bg]').forEach(function(el) { el.classList.toggle('on', el.dataset.bg === bg); });
-      var keys = { transparent: 'bg_transparent', white: 'bg_white', gray: 'bg_gray', beige: 'bg_beige' };
-      var key = keys[bg] || 'bg_transparent';
+      var keys = { podium: 'bg_podium', studio: 'bg_studio', minimal: 'bg_minimal', dark: 'bg_dark' };
+      var key = keys[bg] || 'bg_podium';
       if (this.bgLabel) { this.bgLabel.dataset.i18n = key; this.bgLabel.textContent = TRANSLATIONS[this._lang][key]; }
     }
 
@@ -1268,6 +1364,7 @@
     setLang(lang) {
       this._lang = lang;
       document.documentElement.setAttribute('lang', lang);
+      document.getElementById('lang-ua').classList.toggle('on', lang === 'ua');
       document.getElementById('lang-ru').classList.toggle('on', lang === 'ru');
       document.getElementById('lang-en').classList.toggle('on', lang === 'en');
       this._translate();
@@ -1303,7 +1400,7 @@
       this._group('[data-preset]', function(b) { return b.dataset.preset === 'optimal'; });
       this._group('[data-format]', function(b) { return b.dataset.format === 'webp'; });
       this._group('[data-ratio]',  function(b) { return b.dataset.ratio  === '1:1'; });
-      document.querySelectorAll('[data-bg]').forEach(function(el) { el.classList.toggle('on', el.dataset.bg === 'transparent'); });
+      document.querySelectorAll('[data-bg]').forEach(function(el) { el.classList.toggle('on', el.dataset.bg === 'podium'); });
     }
 
     // Переключает класс 'on' на группе элементов
@@ -1448,6 +1545,20 @@
       var savingsBadge = (status === 'done' && savings !== null) 
         ? '<div class="absolute bottom-2 right-2 px-2 py-0.5 rounded-md bg-emerald-500/20 backdrop-blur-sm border border-emerald-500/40 text-[9px] font-extrabold text-emerald-400 shadow-md">-' + savings + '%</div>'
         : '';
+        
+      var seoBtn = (status === 'done' && entry.resultBlob) 
+        ? '<button onclick="window.app.generateSEO(\'' + id + '\')" class="w-full mt-2 py-1.5 px-2 bg-gradient-to-r from-violet-500/20 to-cyan-500/20 hover:from-violet-500/40 hover:to-cyan-500/40 border border-violet-500/30 rounded-lg text-xs font-bold text-white transition-all shadow-lg flex items-center justify-center gap-2"><span class="text-[14px]">🪄</span> ' + t.btnSeo + '</button>'
+        : '';
+        
+      var seoBlock = '';
+      if (entry.seoLoading) {
+        seoBlock = '<div class="mt-2 p-3 bg-slate-900/50 rounded-xl border border-white/5 text-[10px] text-slate-300 animate-pulse text-center font-bold tracking-wider uppercase">' + t.seoAnalyzing + '</div>';
+      } else if (entry.seoText) {
+        seoBlock = '<div class="mt-2 p-2 bg-slate-900/80 rounded-xl border border-cyan-500/30 text-[10px] text-slate-200 leading-relaxed relative">'
+                 + '<div class="whitespace-pre-wrap max-h-32 overflow-y-auto custom-scrollbar">' + this._esc(entry.seoText) + '</div>'
+                 + '<button onclick="navigator.clipboard.writeText(decodeURIComponent(\'' + encodeURIComponent(entry.seoText) + '\')); window.app._toast(\'' + t.toastCopied + '\', \'success\')" class="mt-2 w-full py-1.5 bg-slate-800 hover:bg-slate-700 rounded-md text-[10px] font-bold text-cyan-400 transition-colors">' + t.btnCopy + '</button>'
+                 + '</div>';
+      }
 
       return '<div class="relative group/card">'
         + '<div class="relative aspect-square rounded-xl overflow-hidden bg-slate-955/40 border border-white/5">'
@@ -1461,9 +1572,54 @@
         +   sizeBlock
         +   errBlock
         +   statusRow
+        +   seoBtn
+        +   seoBlock
         +   shimmer
         + '</div>'
         + '</div>';
+    }
+    
+    // Генерация SEO через Gemini API
+    async generateSEO(id) {
+      var entry = this._files.get(id);
+      if (!entry || !entry.resultBlob || entry.seoLoading) return;
+      
+      entry.seoLoading = true;
+      this._refreshCard(id);
+      
+      try {
+        var reader = new FileReader();
+        var base64 = await new Promise((resolve) => {
+          reader.onload = () => resolve(reader.result.split(',')[1]);
+          reader.readAsDataURL(entry.resultBlob);
+        });
+        
+        var langName = { ua: 'українською мовою', ru: 'на русском языке', en: 'in English language' }[this._lang] || 'українською мовою';
+        var promptText = "Сгенерируй SEO-карточку для этого товара " + langName + ". Верни: 1. Продающий заголовок для маркетплейса. 2. Подробное описание товара с преимуществами и эмодзи. 3. Список из 10 ключевых SEO-тегов через запятую. Форматируй текст чисто, без лишних блоков. Только полезный текст.";
+
+        var response = await fetch('/api/gemini', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            prompt: promptText,
+            image: base64,
+            mimeType: entry.finalFormat === 'png' ? 'image/png' : 'image/jpeg'
+          })
+        });
+        
+        var data = await response.json();
+        if (response.ok && data.candidates && data.candidates[0]) {
+          entry.seoText = data.candidates[0].content.parts[0].text;
+        } else {
+          throw new Error(data.error || 'Ошибка API');
+        }
+      } catch (e) {
+        console.error('[WebReadyPic] SEO Generation error', e);
+        this._toast('Ошибка генерации SEO: ' + e.message, 'error');
+      } finally {
+        entry.seoLoading = false;
+        this._refreshCard(id);
+      }
     }
 
     // Экранирование HTML
