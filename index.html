@@ -732,7 +732,7 @@
       bg_studio:        'Студійний градієнт',
       bg_minimal:       'Мінімалізм (світлий)',
       bg_dark:          'Темний контраст',
-      shadow:           'М'яка тінь',
+      shadow:           'М\'яка тінь',
       processAll:       'Обробити всі',
       downloadZip:      'Завантажити ZIP-архів',
       clearAll:         'Очистити все',
@@ -1536,7 +1536,11 @@
     // Добавляет файлы в очередь (с проверкой лимита)
     addFiles(list) {
       var self      = this;
-      var images    = Array.from(list).filter(function(f) { return f.type.startsWith('image/'); });
+      var images    = Array.from(list).filter(function(f) {
+        if (f.type && f.type.startsWith('image/')) return true;
+        var ext = f.name ? f.name.split('.').pop().toLowerCase() : '';
+        return ['jpg', 'jpeg', 'png', 'webp', 'gif', 'bmp', 'svg', 'avif', 'heic', 'jfif', 'ico', 'tiff'].indexOf(ext) !== -1;
+      });
       var available = AppController.MAX_FILES - this._files.size;
 
       if (available <= 0) { this._toast(TRANSLATIONS[this._lang].limitExceeded, 'warning'); return; }
