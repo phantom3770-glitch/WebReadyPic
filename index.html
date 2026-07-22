@@ -732,7 +732,7 @@
       bg_studio:        'Студійний градієнт',
       bg_minimal:       'Мінімалізм (світлий)',
       bg_dark:          'Темний контраст',
-      shadow:           'М\'яка тінь',
+      shadow:           'М'яка тінь',
       processAll:       'Обробити всі',
       downloadZip:      'Завантажити ZIP-архів',
       clearAll:         'Очистити все',
@@ -754,7 +754,11 @@
       savingMetricLabel: 'Зекономлено місця',
       btnSeo:           'Створити SEO-картку (AI)',
       seoAnalyzing:     '✨ AI аналізує товар...',
-      btnCopy:          'Скопіювати текст',
+      seoModalTitle:    'SEO-картка згенерована',
+      seoTitleLabel:    'Заголовок',
+      seoDescLabel:     'Опис',
+      seoTagsLabel:     'SEO-Теги',
+      btnCopy:          '📋 Скопіювати',
       toastCopied:      'Текст скопійовано',
       btnEraser:        '🧹 Підправити (Ластик)',
       eraserTitle:      'Ручне коригування',
@@ -762,6 +766,8 @@
       eraserCancel:     'Відмінити',
       eraserBrush:      '🖌 Пензель',
       eraserErase:      '🧹 Ластик',
+      eraserPan:        '✋ Панорама',
+      eraserSizeLabel:  'Розмір',
       eraserSaved:      'Зміни збережено!',
       background:       'Фон',
       bg_transparent:   '🏁 Прозорий (PNG/WebP)',
@@ -824,7 +830,11 @@
       savingMetricLabel: 'Сэкономлено места',
       btnSeo:           'Сгенерировать SEO-карточку (AI)',
       seoAnalyzing:     '✨ AI анализирует товар...',
-      btnCopy:          'Скопировать текст',
+      seoModalTitle:    'SEO-карточка сгенерирована',
+      seoTitleLabel:    'Заголовок',
+      seoDescLabel:     'Описание',
+      seoTagsLabel:     'SEO-Теги',
+      btnCopy:          '📋 Скопировать',
       toastCopied:      'Текст скопирован',
       btnEraser:        '🧹 Подправить (Ластик)',
       eraserTitle:      'Ручная коррекция',
@@ -832,6 +842,8 @@
       eraserCancel:     'Отмена',
       eraserBrush:      '🖌 Кисть',
       eraserErase:      '🧹 Ластик',
+      eraserPan:        '✋ Панорама',
+      eraserSizeLabel:  'Размер',
       eraserSaved:      'Изменения сохранены!',
       background:       'Фон',
       bg_transparent:   '🏁 Прозрачный (PNG/WebP)',
@@ -894,7 +906,11 @@
       savingMetricLabel: 'Space Saved',
       btnSeo:           'Generate SEO Card (AI)',
       seoAnalyzing:     '✨ AI is analyzing product...',
-      btnCopy:          'Copy Text',
+      seoModalTitle:    'SEO Card Generated',
+      seoTitleLabel:    'Title',
+      seoDescLabel:     'Description',
+      seoTagsLabel:     'SEO Tags',
+      btnCopy:          '📋 Copy',
       toastCopied:      'Text copied',
       btnEraser:        '🧹 Touch Up (Eraser)',
       eraserTitle:      'Manual Touch-Up',
@@ -902,6 +918,8 @@
       eraserCancel:     'Cancel',
       eraserBrush:      '🖌 Brush',
       eraserErase:      '🧹 Eraser',
+      eraserPan:        '✋ Pan',
+      eraserSizeLabel:  'Size',
       eraserSaved:      'Changes saved!',
       background:       'Background',
       bg_transparent:   '🏁 Transparent (PNG/WebP)',
@@ -2059,7 +2077,7 @@
       
       if (text) {
          navigator.clipboard.writeText(text);
-         this._toast('Текст скопійовано', 'success');
+         this._toast(TRANSLATIONS[this._lang].toastCopied, 'success');
       }
     }
 
@@ -2080,15 +2098,26 @@
       var brushSz  = 28;
       var painting = false;
       var zoom     = 1.0;
+      var fitZoom  = 0.3;
       var panX = 0, panY = 0;
       var panning = false, panStartX = 0, panStartY = 0, panOriginX = 0, panOriginY = 0;
 
       // ── Обновляем i18n кнопок ──
-      document.getElementById('eraser-modal-title').textContent = t.eraserTitle;
-      document.getElementById('eraser-btn-save').textContent    = t.eraserSave;
-      document.getElementById('eraser-btn-cancel').textContent  = t.eraserCancel;
-      document.getElementById('eraser-btn-erase').textContent   = t.eraserErase;
-      document.getElementById('eraser-btn-restore').textContent = t.eraserBrush;
+      var elTitle  = document.getElementById('eraser-modal-title');
+      var elSave   = document.getElementById('eraser-btn-save');
+      var elCancel = document.getElementById('eraser-btn-cancel');
+      var elErase  = document.getElementById('eraser-btn-erase');
+      var elRest   = document.getElementById('eraser-btn-restore');
+      var elPan    = document.getElementById('eraser-btn-pan');
+      var elSzLbl  = document.getElementById('eraser-size-title');
+
+      if (elTitle)  elTitle.textContent  = t.eraserTitle;
+      if (elSave)   elSave.textContent   = t.eraserSave;
+      if (elCancel) elCancel.textContent = t.eraserCancel;
+      if (elErase)  elErase.textContent  = t.eraserErase;
+      if (elRest)   elRest.textContent   = t.eraserBrush;
+      if (elPan)    elPan.textContent    = t.eraserPan || '✋ Панорама';
+      if (elSzLbl)  elSzLbl.textContent  = t.eraserSizeLabel || 'Размер';
 
       // ── Ползунок размера кисти ──
       var sizeSlider = document.getElementById('eraser-size-slider');
@@ -2101,7 +2130,7 @@
         ring.style.height = (brushSz * zoom) + 'px';
       };
 
-      // ── Зум ──
+      // ── Зум (диапазон 10% - 300%) ──
       var zoomSlider = document.getElementById('eraser-zoom-slider');
       var zoomLabel  = document.getElementById('eraser-zoom-label');
 
@@ -2112,19 +2141,24 @@
       }
 
       function setZoom(newZ) {
-        zoom = Math.max(0.5, Math.min(5, newZ));
+        zoom = Math.max(0.10, Math.min(3.0, newZ));
         applyTransform();
         ring.style.width  = (brushSz * zoom) + 'px';
         ring.style.height = (brushSz * zoom) + 'px';
       }
 
-      if (zoomSlider) { zoomSlider.value = 100; zoomSlider.oninput = function() { setZoom(parseInt(this.value) / 100); }; }
+      if (zoomSlider) {
+        zoomSlider.min = 10;
+        zoomSlider.max = 300;
+        zoomSlider.oninput = function() { setZoom(parseInt(this.value) / 100); };
+      }
+
       var zIn  = document.getElementById('eraser-zoom-in');
       var zOut = document.getElementById('eraser-zoom-out');
       var zRst = document.getElementById('eraser-zoom-reset');
-      if (zIn)  zIn.onclick  = function() { setZoom(zoom + 0.25); };
-      if (zOut) zOut.onclick = function() { setZoom(zoom - 0.25); };
-      if (zRst) zRst.onclick = function() { zoom = 1; panX = 0; panY = 0; applyTransform(); };
+      if (zIn)  zIn.onclick  = function() { setZoom(zoom + 0.15); };
+      if (zOut) zOut.onclick = function() { setZoom(zoom - 0.15); };
+      if (zRst) zRst.onclick = function() { setZoom(fitZoom); panX = 0; panY = 0; applyTransform(); };
 
       // ── Заменяем canvas через cloneNode ──
       var oldEcTop = document.getElementById('eraser-canvas');
@@ -2140,20 +2174,36 @@
       var ctx   = ec.getContext('2d');
       var bgCtx = bgEc.getContext('2d');
 
-      zoom = 1; panX = 0; panY = 0;
-      applyTransform();
-
       // ── Загружаем изображение из blob ──
       var origImg = new Image();
       var blobUrl = URL.createObjectURL(entry.resultBlob);
       origImg.onload = function() {
         var W = origImg.naturalWidth;
         var H = origImg.naturalHeight;
-        ec.width = bgEc.width = W;
+
+        ec.width  = bgEc.width  = W;
         ec.height = bgEc.height = H;
 
         var sizer = document.getElementById('eraser-canvas-sizer');
-        if (sizer) { sizer.width = W; sizer.height = H; }
+        if (sizer) {
+          sizer.width  = W;
+          sizer.height = H;
+          sizer.style.width  = W + 'px';
+          sizer.style.height = H + 'px';
+          sizer.style.maxWidth  = 'none';
+          sizer.style.maxHeight = 'none';
+        }
+
+        // ── Расчёт моментального Fit-to-Screen зума (25-30% для больших изображений) ──
+        var wrapW = canvasWrap.clientWidth  || 750;
+        var wrapH = canvasWrap.clientHeight || 500;
+        var fitX  = (wrapW * 0.82) / W;
+        var fitY  = (wrapH * 0.82) / H;
+        fitZoom   = Math.max(0.10, Math.min(1.0, Math.min(fitX, fitY)));
+
+        zoom = fitZoom;
+        panX = 0; panY = 0;
+        applyTransform();
 
         // ── Фон-подложка (нижний слой — не редактируется) ──
         var bg = self._cfg ? self._cfg.background : 'white';
@@ -2172,7 +2222,7 @@
         } else if (bg && bg.startsWith('#')) {
           bgCtx.fillStyle = bg; bgCtx.fillRect(0, 0, W, H);
         }
-        // transparent: bgEc пуст, шахматка в CSS wrap
+        // transparent: bgEc пуст — шахматка видна через CSS на wrap
 
         // ── Объект на верхнем слое ──
         ctx.drawImage(origImg, 0, 0);
@@ -2183,17 +2233,15 @@
       // ── Инструменты ──
       function setTool(toolName) {
         tool = toolName;
-        document.getElementById('eraser-btn-erase').classList.toggle('active', toolName === 'erase');
-        document.getElementById('eraser-btn-restore').classList.toggle('active', toolName === 'restore');
-        var bPan = document.getElementById('eraser-btn-pan');
-        if (bPan) bPan.classList.toggle('active', toolName === 'pan');
+        if (elErase) elErase.classList.toggle('active', toolName === 'erase');
+        if (elRest)  elRest.classList.toggle('active', toolName === 'restore');
+        if (elPan)   elPan.classList.toggle('active', toolName === 'pan');
         canvasWrap.style.cursor = (toolName === 'pan') ? 'grab' : 'none';
       }
       setTool('erase');
-      document.getElementById('eraser-btn-erase').onclick   = function() { setTool('erase'); };
-      document.getElementById('eraser-btn-restore').onclick = function() { setTool('restore'); };
-      var bPan = document.getElementById('eraser-btn-pan');
-      if (bPan) bPan.onclick = function() { setTool('pan'); };
+      if (elErase) elErase.onclick = function() { setTool('erase'); };
+      if (elRest)  elRest.onclick  = function() { setTool('restore'); };
+      if (elPan)   elPan.onclick   = function() { setTool('pan'); };
 
       function getCanvasPos(e) {
         var rect = ec.getBoundingClientRect();
@@ -2240,7 +2288,7 @@
       }
       function stopPan() { panning = false; if (tool === 'pan') canvasWrap.style.cursor = 'grab'; }
 
-      function onWheel(e) { e.preventDefault(); setZoom(zoom + (e.deltaY < 0 ? 0.15 : -0.15)); }
+      function onWheel(e) { e.preventDefault(); setZoom(zoom + (e.deltaY < 0 ? 0.10 : -0.10)); }
 
       canvasWrap.addEventListener('mousedown',  function(e) { if (tool === 'pan') startPan(e); else { painting = true; doPaint(e); } });
       canvasWrap.addEventListener('mouseup',    function()  { painting = false; stopPan(); });
@@ -2252,12 +2300,22 @@
       canvasWrap.addEventListener('touchend',   function()  { painting = false; stopPan(); });
       canvasWrap.addEventListener('touchmove',  function(e) { e.preventDefault(); updateRing(e); if (tool === 'pan') doPan(e); else doPaint(e); }, { passive: false });
 
-      // ── Сохранить — только верхний слой (объект без фона) ──
+      // ── Сохранить — объединяем нижний (фон) и верхний (объект) слои при экспорте ──
       document.getElementById('eraser-btn-save').onclick = function() {
-        ec.toBlob(function(blob) {
+        var expCanvas = document.createElement('canvas');
+        expCanvas.width  = ec.width;
+        expCanvas.height = ec.height;
+        var expCtx = expCanvas.getContext('2d');
+
+        // Рисуем запеченный фон, а поверх — вырезанный отредактированный объект
+        expCtx.drawImage(bgEc, 0, 0);
+        expCtx.drawImage(ec, 0, 0);
+
+        expCanvas.toBlob(function(blob) {
           if (!blob) return;
           if (entry.thumbUrl) URL.revokeObjectURL(entry.thumbUrl);
-          entry.resultBlob = blob; entry.thumbUrl = URL.createObjectURL(blob);
+          entry.resultBlob = blob;
+          entry.thumbUrl   = URL.createObjectURL(blob);
           self._refreshCard(id);
           wrap.classList.remove('open'); ring.style.display = 'none';
           self._toast(t.eraserSaved, 'success');
@@ -2270,7 +2328,6 @@
 
       wrap.classList.add('open');
     }
-
 
     // Экранирование HTML
     _esc(str) {
@@ -2326,22 +2383,28 @@
       <button class="seo-modal-close" onclick="document.getElementById('seo-modal-wrap').classList.remove('open')">✕</button>
       <div class="flex items-center gap-3 mb-6">
         <span class="text-2xl">✨</span>
-        <h2 class="text-xl font-extrabold text-white font-outfit" id="seo-modal-title-ui">SEO-картка згенерована</h2>
+        <h2 class="text-xl font-extrabold text-white font-outfit" id="seo-modal-title-ui" data-i18n="seoModalTitle">SEO-карточка сгенерирована</h2>
       </div>
       <div class="mb-5 bg-slate-900/50 p-4 rounded-xl border border-white/5 relative group">
-        <div class="text-[10px] text-slate-400 font-bold uppercase tracking-wider mb-2">Заголовок</div>
+        <div class="text-[10px] text-slate-400 font-bold uppercase tracking-wider mb-2" data-i18n="seoTitleLabel">Заголовок</div>
         <div id="seo-modal-title" class="text-white font-semibold text-lg pr-20"></div>
-        <button class="copy-btn absolute top-3 right-3" onclick="window.app._copyToClipboard('seo-modal-title')">📋 Копіювати</button>
+        <button class="copy-btn absolute top-3 right-3" onclick="window.app._copyToClipboard('seo-modal-title')">
+          <span data-i18n="btnCopy">📋 Скопировать</span>
+        </button>
       </div>
       <div class="mb-5 bg-slate-900/50 p-4 rounded-xl border border-white/5 relative group">
-        <div class="text-[10px] text-slate-400 font-bold uppercase tracking-wider mb-2">Опис</div>
+        <div class="text-[10px] text-slate-400 font-bold uppercase tracking-wider mb-2" data-i18n="seoDescLabel">Описание</div>
         <div id="seo-modal-desc" class="text-slate-300 text-sm leading-relaxed seo-markdown mt-2"></div>
-        <button class="copy-btn absolute top-3 right-3" onclick="window.app._copyToClipboard('seo-modal-desc', true)">📋 Копіювати</button>
+        <button class="copy-btn absolute top-3 right-3" onclick="window.app._copyToClipboard('seo-modal-desc', true)">
+          <span data-i18n="btnCopy">📋 Скопировать</span>
+        </button>
       </div>
       <div class="bg-slate-900/50 p-4 rounded-xl border border-white/5 relative group">
-        <div class="text-[10px] text-slate-400 font-bold uppercase tracking-wider mb-3">SEO-Теги</div>
+        <div class="text-[10px] text-slate-400 font-bold uppercase tracking-wider mb-3" data-i18n="seoTagsLabel">SEO-Теги</div>
         <div id="seo-modal-tags" class="flex flex-wrap pr-20" data-raw=""></div>
-        <button class="copy-btn absolute top-3 right-3" onclick="window.app._copyToClipboard('seo-modal-tags', false, true)">📋 Копіювати</button>
+        <button class="copy-btn absolute top-3 right-3" onclick="window.app._copyToClipboard('seo-modal-tags', false, true)">
+          <span data-i18n="btnCopy">📋 Скопировать</span>
+        </button>
       </div>
     </div>
   </div>
@@ -2356,23 +2419,23 @@
         <!-- Title -->
         <div class="flex items-center gap-2">
           <span class="text-base">🧹</span>
-          <span id="eraser-modal-title" class="text-sm font-extrabold text-white">Ручна корекція</span>
+          <span id="eraser-modal-title" class="text-sm font-extrabold text-white" data-i18n="eraserTitle">Ручная коррекция</span>
         </div>
 
         <!-- Separator -->
         <div class="w-px h-5 bg-white/10"></div>
 
         <!-- Tool buttons -->
-        <button id="eraser-btn-erase"   class="eraser-tool-btn active">🧹 Ластик</button>
-        <button id="eraser-btn-restore" class="eraser-tool-btn">🖌 Кисть</button>
-        <button id="eraser-btn-pan"     class="eraser-tool-btn">✋ Пан</button>
+        <button id="eraser-btn-erase"   class="eraser-tool-btn active" data-i18n="eraserErase">🧹 Ластик</button>
+        <button id="eraser-btn-restore" class="eraser-tool-btn" data-i18n="eraserBrush">🖌 Кисть</button>
+        <button id="eraser-btn-pan"     class="eraser-tool-btn" data-i18n="eraserPan">✋ Панорама</button>
 
         <!-- Separator -->
         <div class="w-px h-5 bg-white/10"></div>
 
         <!-- Brush size -->
         <div class="flex items-center gap-1.5">
-          <span class="text-[10px] text-slate-400 font-semibold whitespace-nowrap">Розмір</span>
+          <span id="eraser-size-title" class="text-[10px] text-slate-400 font-semibold whitespace-nowrap" data-i18n="eraserSizeLabel">Размер</span>
           <input id="eraser-size-slider" type="range" min="5" max="120" value="28"
             class="w-16 h-1.5 accent-cyan-400 cursor-pointer">
           <span class="text-[10px] text-slate-300 font-bold w-6 text-center" id="eraser-size-label">28</span>
@@ -2384,7 +2447,7 @@
         <!-- Zoom controls -->
         <div class="flex items-center gap-1.5">
           <button id="eraser-zoom-out" class="eraser-tool-btn" style="padding:4px 8px;font-size:14px;line-height:1;">&#8722;</button>
-          <input id="eraser-zoom-slider" type="range" min="50" max="500" value="100"
+          <input id="eraser-zoom-slider" type="range" min="10" max="300" value="100"
             class="w-20 h-1.5 accent-violet-400 cursor-pointer">
           <button id="eraser-zoom-in" class="eraser-tool-btn" style="padding:4px 8px;font-size:14px;line-height:1;">&#43;</button>
           <span class="text-[10px] text-slate-300 font-bold w-9 text-center" id="eraser-zoom-label">100%</span>
@@ -2393,8 +2456,8 @@
 
         <!-- ml-auto spacer + Save/Cancel -->
         <div class="ml-auto flex items-center gap-2">
-          <button id="eraser-btn-cancel" class="eraser-cancel-btn">Відмінити</button>
-          <button id="eraser-btn-save"   class="eraser-save-btn">✅ Зберегти</button>
+          <button id="eraser-btn-cancel" class="eraser-cancel-btn" data-i18n="eraserCancel">Отмена</button>
+          <button id="eraser-btn-save"   class="eraser-save-btn" data-i18n="eraserSave">✅ Сохранить</button>
         </div>
       </div>
 
@@ -2403,7 +2466,7 @@
         <div class="eraser-viewport" id="eraser-viewport">
           <div class="eraser-stage" id="eraser-stage">
             <!-- sizer — задаёт внешние размеры stage -->
-            <canvas id="eraser-canvas-sizer" style="max-width:min(100%,900px);max-height:65vh;"></canvas>
+            <canvas id="eraser-canvas-sizer"></canvas>
             <!-- Фон-слой -->
             <canvas id="eraser-bg-canvas"></canvas>
             <!-- Слой объекта (редактируемый) -->
