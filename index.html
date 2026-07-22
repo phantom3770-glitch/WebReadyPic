@@ -115,11 +115,17 @@
       background: conic-gradient(#334155 0 25%, #0f172a 25% 50%, #334155 50% 75%, #0f172a 75%);
       background-size: 8px 8px;
     }
-    .bg-swatch-white { background: #FFFFFF; }
-    .bg-swatch-podium { background: radial-gradient(circle, #f8f9fa, #e0e0e0); }
-    .bg-swatch-studio { background: linear-gradient(135deg, #f0f0f0, #c8c8c8); }
-    .bg-swatch-minimal { background: #FAFAFA; border: 1px solid rgba(0,0,0,0.1) !important; }
-    .bg-swatch-dark { background: linear-gradient(135deg, #2b2d31, #1e1f22); }
+    .bg-swatch-white    { background: #FFFFFF; border: 1px solid rgba(0,0,0,0.12) !important; }
+    .bg-swatch-lightgray{ background: #F3F4F6; border: 1px solid rgba(0,0,0,0.08) !important; }
+    .bg-swatch-gradient {
+      background: radial-gradient(circle at 50% 40%, #ffffff 0%, #e9ecef 60%, #ced4da 100%);
+    }
+    .bg-swatch-dark     { background: linear-gradient(135deg, #1F2937, #111827); }
+    .bg-swatch-custom   {
+      background: conic-gradient(#6366f1 0 25%, #06b6d4 25% 50%, #a855f7 50% 75%, #06b6d4 75%);
+      background-size: 6px 6px;
+      position: relative; overflow: hidden;
+    }
     
     .bg-swatch {
       border: 2px solid transparent;
@@ -254,6 +260,110 @@
     #action-bar.visible {
       display: flex;
     }
+
+    /* SEO Modal */
+    #seo-modal-wrap {
+      position: fixed; inset: 0; z-index: 1000;
+      display: flex; align-items: center; justify-content: center;
+      background: rgba(3, 7, 18, 0.85); backdrop-filter: blur(8px);
+      opacity: 0; pointer-events: none; transition: opacity 0.3s;
+    }
+    #seo-modal-wrap.open { opacity: 1; pointer-events: all; }
+    .seo-modal-content {
+      background: var(--glass-bg); border: 1px solid var(--glass-border);
+      box-shadow: 0 25px 50px -12px rgba(0,0,0,0.7);
+      width: 100%; max-width: 600px; max-height: 90vh; overflow-y: auto;
+      border-radius: 20px; padding: 24px; position: relative;
+      transform: translateY(20px) scale(0.95); transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+    #seo-modal-wrap.open .seo-modal-content { transform: translateY(0) scale(1); }
+    .seo-modal-close {
+      position: absolute; top: 16px; right: 16px;
+      background: rgba(255,255,255,0.1); border: none; border-radius: 50%;
+      width: 32px; height: 32px; color: #fff; cursor: pointer;
+      display: flex; align-items: center; justify-content: center; transition: background 0.2s;
+    }
+    .seo-modal-close:hover { background: rgba(255,255,255,0.2); }
+    .seo-tag {
+      display: inline-block; padding: 4px 10px; margin: 3px;
+      background: rgba(6, 182, 212, 0.15); border: 1px solid rgba(6, 182, 212, 0.3);
+      color: #22D3EE; border-radius: 12px; font-size: 11px; font-weight: 600;
+    }
+    .copy-btn {
+      display: inline-flex; align-items: center; gap: 6px;
+      padding: 6px 12px; font-size: 11px; font-weight: bold; cursor: pointer;
+      background: rgba(15, 23, 42, 0.8); border: 1px solid rgba(255,255,255,0.1);
+      color: #94A3B8; border-radius: 8px; transition: all 0.2s;
+    }
+    .copy-btn:hover { background: rgba(255,255,255,0.1); color: #fff; border-color: rgba(255,255,255,0.2); }
+    .seo-markdown b, .seo-markdown strong { color: #fff; font-weight: 700; }
+    .seo-markdown ul { list-style: disc; padding-left: 1.5rem; margin-top: 0.5rem; margin-bottom: 0.5rem; }
+    .seo-markdown li { margin-bottom: 0.25rem; }
+
+    /* Eraser Modal */
+    #eraser-modal-wrap {
+      position: fixed; inset: 0; z-index: 1100;
+      display: flex; align-items: center; justify-content: center;
+      background: rgba(3, 7, 18, 0.92); backdrop-filter: blur(12px);
+      opacity: 0; pointer-events: none; transition: opacity 0.3s;
+    }
+    #eraser-modal-wrap.open { opacity: 1; pointer-events: all; }
+    .eraser-modal-content {
+      background: rgba(10, 16, 30, 0.97); border: 1px solid rgba(255,255,255,0.1);
+      box-shadow: 0 30px 70px -15px rgba(0,0,0,0.85), 0 0 0 1px rgba(0,242,254,0.05);
+      width: 100%; max-width: 800px; max-height: 94vh; display: flex; flex-direction: column;
+      border-radius: 24px; overflow: hidden; position: relative;
+      transform: translateY(24px) scale(0.96); transition: all 0.35s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+    #eraser-modal-wrap.open .eraser-modal-content { transform: translateY(0) scale(1); }
+    .eraser-toolbar {
+      display: flex; align-items: center; gap: 12px; padding: 14px 20px;
+      border-bottom: 1px solid rgba(255,255,255,0.07); background: rgba(255,255,255,0.02);
+      flex-wrap: wrap;
+    }
+    .eraser-canvas-wrap {
+      flex: 1; overflow: auto; display: flex; align-items: center; justify-content: center;
+      background: conic-gradient(#1e293b 0 25%, #0f172a 25% 50%, #1e293b 50% 75%, #0f172a 75%);
+      background-size: 24px 24px;
+      padding: 16px; min-height: 300px;
+    }
+    #eraser-canvas {
+      max-width: 100%; max-height: 65vh;
+      border-radius: 8px;
+      box-shadow: 0 0 0 2px rgba(0,242,254,0.2), 0 20px 40px -10px rgba(0,0,0,0.6);
+      cursor: none;
+      display: block;
+    }
+    .eraser-cursor-ring {
+      position: fixed; pointer-events: none; z-index: 1200;
+      border: 2px solid rgba(0,242,254,0.8); border-radius: 50%;
+      transform: translate(-50%, -50%);
+      transition: width 0.1s, height 0.1s;
+      display: none;
+    }
+    .eraser-tool-btn {
+      padding: 6px 14px; border-radius: 8px; font-size: 11px; font-weight: 700;
+      border: 1px solid rgba(255,255,255,0.1); cursor: pointer; transition: all 0.2s;
+      background: rgba(255,255,255,0.05); color: #94A3B8;
+    }
+    .eraser-tool-btn.active {
+      background: rgba(0,242,254,0.15); border-color: rgba(0,242,254,0.4); color: #22D3EE;
+      box-shadow: 0 0 12px rgba(0,242,254,0.15);
+    }
+    .eraser-tool-btn:hover:not(.active) { background: rgba(255,255,255,0.1); color: #fff; }
+    .eraser-save-btn {
+      padding: 7px 20px; border-radius: 10px; font-size: 12px; font-weight: 800;
+      border: none; cursor: pointer; transition: all 0.25s;
+      background: linear-gradient(135deg, #00F2FE 0%, #6366F1 100%);
+      color: #030712; box-shadow: 0 4px 16px rgba(0,242,254,0.25);
+    }
+    .eraser-save-btn:hover { filter: brightness(1.1); transform: translateY(-1px); }
+    .eraser-cancel-btn {
+      padding: 7px 16px; border-radius: 10px; font-size: 12px; font-weight: 700;
+      border: 1px solid rgba(255,255,255,0.1); cursor: pointer; transition: all 0.2s;
+      background: rgba(255,255,255,0.05); color: #94A3B8;
+    }
+    .eraser-cancel-btn:hover { background: rgba(239,68,68,0.15); border-color: rgba(239,68,68,0.3); color: #f87171; }
   </style>
 </head>
 <body class="selection:bg-cyan-500/30 selection:text-cyan-200">
@@ -511,14 +621,33 @@
 
               <!-- Canvas Color swatches -->
               <div>
-                <div data-i18n="background" class="text-[10px] font-extrabold text-slate-400 mb-2.5 tracking-wider uppercase font-outfit">Фон подложки</div>
-                <div class="flex gap-3 items-center mb-1.5">
-                  <div class="bg-swatch w-7 h-7 rounded-full cursor-pointer border-2 border-transparent transition bg-swatch-podium" data-bg="podium" title="Профессиональный подиум"></div>
-                  <div class="bg-swatch w-7 h-7 rounded-full cursor-pointer border-2 border-transparent transition bg-swatch-studio" data-bg="studio" title="Студийный градиент"></div>
-                  <div class="bg-swatch w-7 h-7 rounded-full cursor-pointer border-2 border-transparent transition bg-swatch-minimal" data-bg="minimal" title="Минимализм (светлый)"></div>
-                  <div class="bg-swatch w-7 h-7 rounded-full cursor-pointer border-2 border-transparent transition bg-swatch-dark" data-bg="dark" title="Тёмный контраст"></div>
+                <div data-i18n="background" class="text-[10px] font-extrabold text-slate-400 mb-2.5 tracking-wider uppercase font-outfit">Фон</div>
+                <div class="flex gap-2 items-center mb-2 flex-wrap">
+                  <!-- 🏁 Transparent -->
+                  <div class="bg-swatch w-7 h-7 rounded-full cursor-pointer border-2 border-transparent transition bg-swatch-transparent"
+                       data-bg="transparent" title="🏁 Прозрачный — PNG/WebP с альфа-каналом"></div>
+                  <!-- ⚪ Чисто белый -->
+                  <div class="bg-swatch w-7 h-7 rounded-full cursor-pointer border-2 border-transparent transition bg-swatch-white"
+                       data-bg="white" title="⚪ Чисто белый #FFFFFF — стандарт маркетплейсов"></div>
+                  <!-- 🔘 Светло-серый -->
+                  <div class="bg-swatch w-7 h-7 rounded-full cursor-pointer border-2 border-transparent transition bg-swatch-lightgray"
+                       data-bg="lightgray" title="🔘 Светло-серый #F3F4F6 — для белых товаров"></div>
+                  <!-- 🔘 Светлый градиент -->
+                  <div class="bg-swatch w-7 h-7 rounded-full cursor-pointer border-2 border-transparent transition bg-swatch-gradient"
+                       data-bg="gradient" title="🔘 Светлый градиент — мягкий свет по центру"></div>
+                  <!-- ⬛ Тёмный графит -->
+                  <div class="bg-swatch w-7 h-7 rounded-full cursor-pointer border-2 border-transparent transition bg-swatch-dark"
+                       data-bg="dark" title="⬛ Тёмный графит #1F2937"></div>
+                  <!-- 🎨 Свой цвет -->
+                  <label class="bg-swatch w-7 h-7 rounded-full cursor-pointer border-2 border-transparent transition bg-swatch-custom flex items-center justify-center"
+                         title="🎨 Свой цвет" id="custom-color-label" data-bg="custom">
+                    <input type="color" id="bg-color-picker" value="#FFFFFF"
+                      class="opacity-0 absolute w-0 h-0 pointer-events-none"
+                      tabindex="-1">
+                    <span class="text-[11px] text-white font-extrabold leading-none" style="text-shadow:0 1px 2px rgba(0,0,0,0.5);">+</span>
+                  </label>
                 </div>
-                <div id="bg-label" data-i18n="bg_podium" class="text-[11px] text-cyan-400 font-bold">Профессиональный подиум</div>
+                <div id="bg-label" class="text-[11px] text-cyan-400 font-bold">🏁 Прозорий (PNG/WebP)</div>
               </div>
 
               <!-- Soft Shadow Toggle -->
@@ -604,7 +733,21 @@
       btnSeo:           'Створити SEO-картку (AI)',
       seoAnalyzing:     '✨ AI аналізує товар...',
       btnCopy:          'Скопіювати текст',
-      toastCopied:      'Текст скопійовано'
+      toastCopied:      'Текст скопійовано',
+      btnEraser:        '🧹 Підправити (Ластик)',
+      eraserTitle:      'Ручне коригування',
+      eraserSave:       '✅ Зберегти',
+      eraserCancel:     'Відмінити',
+      eraserBrush:      '🖌 Пензель',
+      eraserErase:      '🧹 Ластик',
+      eraserSaved:      'Зміни збережено!',
+      background:       'Фон',
+      bg_transparent:   '🏁 Прозорий (PNG/WebP)',
+      bg_white:         '⚪ Чисто білий #FFFFFF',
+      bg_lightgray:     '🔘 Світло-сірий #F3F4F6',
+      bg_gradient:      '🔘 Світлий градієнт',
+      bg_dark:          '⬛ Темний графіт #1F2937',
+      bg_custom:        '🎨 Власний колір',
     },
     ru: {
       tagline:          'Инновационная веб-подготовка графики',
@@ -660,7 +803,21 @@
       btnSeo:           'Сгенерировать SEO-карточку (AI)',
       seoAnalyzing:     '✨ AI анализирует товар...',
       btnCopy:          'Скопировать текст',
-      toastCopied:      'Текст скопирован'
+      toastCopied:      'Текст скопирован',
+      btnEraser:        '🧹 Подправить (Ластик)',
+      eraserTitle:      'Ручная коррекция',
+      eraserSave:       '✅ Сохранить',
+      eraserCancel:     'Отмена',
+      eraserBrush:      '🖌 Кисть',
+      eraserErase:      '🧹 Ластик',
+      eraserSaved:      'Изменения сохранены!',
+      background:       'Фон',
+      bg_transparent:   '🏁 Прозрачный (PNG/WebP)',
+      bg_white:         '⚪ Чисто белый #FFFFFF',
+      bg_lightgray:     '🔘 Светло-серый #F3F4F6',
+      bg_gradient:      '🔘 Светлый градиент',
+      bg_dark:          '⬛ Тёмный графит #1F2937',
+      bg_custom:        '🎨 Свой цвет',
     },
     en: {
       tagline:          'Innovative Web Graphics Preparation',
@@ -716,7 +873,21 @@
       btnSeo:           'Generate SEO Card (AI)',
       seoAnalyzing:     '✨ AI is analyzing product...',
       btnCopy:          'Copy Text',
-      toastCopied:      'Text copied'
+      toastCopied:      'Text copied',
+      btnEraser:        '🧹 Touch Up (Eraser)',
+      eraserTitle:      'Manual Touch-Up',
+      eraserSave:       '✅ Save',
+      eraserCancel:     'Cancel',
+      eraserBrush:      '🖌 Brush',
+      eraserErase:      '🧹 Eraser',
+      eraserSaved:      'Changes saved!',
+      background:       'Background',
+      bg_transparent:   '🏁 Transparent (PNG/WebP)',
+      bg_white:         '⚪ Pure White #FFFFFF',
+      bg_lightgray:     '🔘 Light Gray #F3F4F6',
+      bg_gradient:      '🔘 Soft Gradient',
+      bg_dark:          '⬛ Dark Graphite #1F2937',
+      bg_custom:        '🎨 Custom Color',
     },
   };
 
@@ -856,16 +1027,30 @@
         var minX = W, minY = H, maxX = 0, maxY = 0;
 
         for (var i = 0; i < pixelCount; i++) {
-          var alpha = maskData[i * channels];
+          var rawAlpha = maskData[i * channels];
 
-          // Максимальное сглаживание: убираем только откровенный мусор (alpha < 5)
-          if (alpha < 5) alpha = 0;
-          else if (alpha > 250) alpha = 255;
+          // ── 4-зонный Alpha Thresholding для чистых краёв ──
+          // Зона 1: Явный мусор (<15) → полностью прозрачный
+          // Зона 2: Полупрозрачная кромка (15-50) → плавный feathering
+          // Зона 3: Мягкий край (50-210) → оставляем как есть (AA)
+          // Зона 4: Уверенный объект (>210) → полностью непрозрачный
+          var alpha;
+          if (rawAlpha < 15) {
+            alpha = 0;
+          } else if (rawAlpha < 50) {
+            // Нелинейное нарастание (easing) для плавного feathering
+            var t = (rawAlpha - 15) / 35;
+            alpha = Math.round(t * t * 80);  // max 80 на этой зоне
+          } else if (rawAlpha > 210) {
+            alpha = 255;
+          } else {
+            alpha = rawAlpha;
+          }
 
           pixels[i * 4 + 3] = alpha;
 
-          // Если пиксель видим, расширяем границы объекта
-          if (alpha > 0) {
+          // Если пиксель видим (alpha > 30), расширяем границы объекта
+          if (alpha > 30) {
             var x = i % W;
             var y = Math.floor(i / W);
             if (x < minX) minX = x;
@@ -875,16 +1060,7 @@
           }
         }
         outCtx.putImageData(imgData, 0, 0);
-
-        // Применяем 1px Blur (сглаживание артефактов)
-        // Для этого используем временный canvas и нативные фильтры
-        var blurTmp = document.createElement('canvas');
-        blurTmp.width = W; blurTmp.height = H;
-        blurTmp.getContext('2d').putImageData(imgData, 0, 0);
-        outCtx.clearRect(0, 0, W, H);
-        outCtx.filter = 'blur(1px)';
-        outCtx.drawImage(blurTmp, 0, 0);
-        outCtx.filter = 'none';
+        // NB: убираем 1px blur — он размазывает края; feathering выше делает края естественными
 
         // Если на изображении остался объект, обрезаем холст точно по его границам
         if (maxX >= minX && maxY >= minY) {
@@ -1005,23 +1181,84 @@
         var drawY  = Math.round((h - drawH) / 2);
 
         if (shadow) {
-          // Мягкая контактная тень (эллипс у основания)
-          ctx.save();
-          var cx = drawX + drawW / 2;
-          var cy = drawY + drawH - drawH * 0.03; // чуть выше нижней грани
-          var rx = drawW * 0.45; // ширина тени
-          var ry = drawH * 0.08; // высота тени
-          
-          var shGrad = ctx.createRadialGradient(cx, cy, 0, cx, cy, rx);
-          shGrad.addColorStop(0, 'rgba(0,0,0,0.4)');
-          shGrad.addColorStop(0.3, 'rgba(0,0,0,0.15)');
-          shGrad.addColorStop(1, 'rgba(0,0,0,0)');
-          
-          ctx.fillStyle = shGrad;
-          ctx.beginPath();
-          ctx.ellipse(cx, cy, rx, ry, 0, 0, Math.PI * 2);
-          ctx.fill();
-          ctx.restore();
+          // ── Smart Shadow: физически точная тень под основанием объекта ──
+          // Шаг 1: рисуем объект на offscreen canvas и сканируем нижний edge
+          var shadowProbe = document.createElement('canvas');
+          shadowProbe.width  = drawW;
+          shadowProbe.height = drawH;
+          var spCtx = shadowProbe.getContext('2d');
+          spCtx.drawImage(img, 0, 0, drawW, drawH);
+          var spData = spCtx.getImageData(0, 0, drawW, drawH).data;
+
+          // Ищем нижнюю строку с непрозрачными пикселями и её левый/правый края
+          var bottomY = -1, footL = drawW, footR = 0;
+          for (var sy = drawH - 1; sy >= 0; sy--) {
+            for (var sx = 0; sx < drawW; sx++) {
+              var a = spData[(sy * drawW + sx) * 4 + 3];
+              if (a > 30) {
+                if (bottomY === -1) bottomY = sy;
+                if (sx < footL) footL = sx;
+                if (sx > footR) footR = sx;
+              }
+            }
+            // Сканируем ещё несколько строк снизу, чтобы найти ширину «подошвы»
+            if (bottomY !== -1 && sy < bottomY - Math.round(drawH * 0.04)) break;
+          }
+
+          // Если объект найден — рисуем тень точно под его основанием
+          if (bottomY !== -1 && footR > footL) {
+            var footCX = drawX + (footL + footR) / 2;    // центр подошвы (X)
+            var footCY = drawY + bottomY;                 // Y нижнего края объекта
+            var footW  = (footR - footL) * 0.55;         // ширина contact shadow
+            var ambW   = (footR - footL) * 0.65;         // ширина ambient shadow
+
+            ctx.save();
+
+            // Слой 1: Ambient shadow — широкое мягкое пятно
+            ctx.filter = 'blur(12px)';
+            var ambGrad = ctx.createRadialGradient(
+              footCX, footCY + 14, 0,
+              footCX, footCY + 14, ambW
+            );
+            ambGrad.addColorStop(0,   'rgba(0,0,0,0.22)');
+            ambGrad.addColorStop(0.5, 'rgba(0,0,0,0.10)');
+            ambGrad.addColorStop(1,   'rgba(0,0,0,0)');
+            ctx.fillStyle = ambGrad;
+            ctx.beginPath();
+            ctx.ellipse(footCX, footCY + 14, ambW, ambW * 0.22, 0, 0, Math.PI * 2);
+            ctx.fill();
+
+            // Слой 2: Contact shadow — тёмная тонкая полоска прямо под подошвой
+            ctx.filter = 'blur(3px)';
+            var contactGrad = ctx.createRadialGradient(footCX, footCY + 2, 0, footCX, footCY + 2, footW);
+            contactGrad.addColorStop(0,    'rgba(0,0,0,0.48)');
+            contactGrad.addColorStop(0.55, 'rgba(0,0,0,0.18)');
+            contactGrad.addColorStop(1,    'rgba(0,0,0,0)');
+            ctx.fillStyle = contactGrad;
+            ctx.beginPath();
+            ctx.ellipse(footCX, footCY + 2, footW, footW * 0.12, 0, 0, Math.PI * 2);
+            ctx.fill();
+
+            ctx.filter = 'none';
+            ctx.restore();
+          } else {
+            // Fallback: центрированная тень если объект не распознан
+            ctx.save();
+            var cx = drawX + drawW / 2;
+            var cy = drawY + drawH - drawH * 0.02;
+            var rx = drawW * 0.40;
+            ctx.filter = 'blur(10px)';
+            var shGrad = ctx.createRadialGradient(cx, cy, 0, cx, cy, rx);
+            shGrad.addColorStop(0, 'rgba(0,0,0,0.35)');
+            shGrad.addColorStop(0.4, 'rgba(0,0,0,0.12)');
+            shGrad.addColorStop(1,   'rgba(0,0,0,0)');
+            ctx.fillStyle = shGrad;
+            ctx.beginPath();
+            ctx.ellipse(cx, cy, rx, rx * 0.15, 0, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.filter = 'none';
+            ctx.restore();
+          }
         }
         ctx.drawImage(img, drawX, drawY, drawW, drawH);
 
@@ -1050,29 +1287,35 @@
 
     // Рисует фон подложки
     _drawBg(ctx, w, h, bg) {
-      if (bg === 'podium') {
-        // Профессиональный подиум (радиальный градиент + линия горизонта)
-        var grad = ctx.createRadialGradient(w/2, h/2 - h*0.1, h*0.1, w/2, h/2, Math.max(w, h));
-        grad.addColorStop(0, '#FFFFFF');
-        grad.addColorStop(0.6, '#F0F2F5');
-        grad.addColorStop(1, '#E2E6EA');
+      if (bg === 'white') {
+        // ⚪ Чисто белый — стандарт маркетплейсов
+        ctx.fillStyle = '#FFFFFF';
+        ctx.fillRect(0, 0, w, h);
+      } else if (bg === 'lightgray') {
+        // 🔘 Светло-серый — для белых товаров
+        ctx.fillStyle = '#F3F4F6';
+        ctx.fillRect(0, 0, w, h);
+      } else if (bg === 'gradient') {
+        // 🔘 Светлый градиент — мягкий свет по центру
+        var grad = ctx.createRadialGradient(w / 2, h * 0.4, h * 0.05, w / 2, h * 0.5, Math.max(w, h) * 0.75);
+        grad.addColorStop(0,   '#FFFFFF');
+        grad.addColorStop(0.5, '#F0F2F5');
+        grad.addColorStop(1,   '#E2E6EA');
         ctx.fillStyle = grad;
         ctx.fillRect(0, 0, w, h);
-        // Линия подиума
-        ctx.fillStyle = 'rgba(255,255,255,0.4)';
-        ctx.fillRect(0, h * 0.75, w, h * 0.25);
-      } else if (bg === 'studio') {
-        var g = ctx.createLinearGradient(0, 0, 0, h);
-        g.addColorStop(0, '#F8F9FA'); g.addColorStop(0.5, '#E9ECEF'); g.addColorStop(1, '#CED4DA');
-        ctx.fillStyle = g; ctx.fillRect(0, 0, w, h);
-      } else if (bg === 'minimal') {
-        ctx.fillStyle = '#FAFAFA';
-        ctx.fillRect(0, 0, w, h);
       } else if (bg === 'dark') {
+        // ⬛ Тёмный графит
         var gd = ctx.createLinearGradient(0, 0, 0, h);
-        gd.addColorStop(0, '#2b2d31'); gd.addColorStop(1, '#1e1f22');
-        ctx.fillStyle = gd; ctx.fillRect(0, 0, w, h);
+        gd.addColorStop(0, '#1F2937');
+        gd.addColorStop(1, '#111827');
+        ctx.fillStyle = gd;
+        ctx.fillRect(0, 0, w, h);
+      } else if (bg && bg.startsWith('#')) {
+        // 🎨 Произвольный hex-цвет (color picker)
+        ctx.fillStyle = bg;
+        ctx.fillRect(0, 0, w, h);
       } else {
+        // 🏁 Прозрачный — clearRect оставляет альфа-канал нетронутым
         ctx.clearRect(0, 0, w, h);
       }
     }
@@ -1151,10 +1394,13 @@
       document.getElementById('btn-clear').addEventListener('click', function() { self.clearAll(); });
       this.btnZip.addEventListener('click', function() { self.downloadZip(); });
 
-      // ── Делегирование: клик по кнопке удаления карточки (data-remove) ──
+      // ── Делегирование: клик по кнопкам карточки ──
       this.grid.addEventListener('click', function(e) {
-        var btn = e.target.closest('[data-remove]');
-        if (btn) { self.removeFile(btn.getAttribute('data-remove')); }
+        var remBtn = e.target.closest('[data-remove]');
+        if (remBtn) { self.removeFile(remBtn.getAttribute('data-remove')); return; }
+        
+        var dlBtn = e.target.closest('[data-download]');
+        if (dlBtn) { self.downloadSingle(dlBtn.getAttribute('data-download')); return; }
       });
 
       // ── Делегирование: клик по тосту (закрыть) ──
@@ -1189,6 +1435,25 @@
         el.addEventListener('click', function() { self.setBackground(el.getAttribute('data-bg')); });
       });
 
+      // ── Выборщик произвольного цвета ──
+      var picker = document.getElementById('bg-color-picker');
+      var customLabel = document.getElementById('custom-color-label');
+      if (picker) {
+        customLabel.addEventListener('click', function(e) {
+          picker.click();
+          e.stopPropagation();
+        });
+        picker.addEventListener('input', function() {
+          // Обновляем визуал свотча
+          customLabel.style.background = picker.value;
+          self.setBackground(picker.value);
+        });
+        picker.addEventListener('change', function() {
+          customLabel.style.background = picker.value;
+          self.setBackground(picker.value);
+        });
+      }
+
       // ── Тумблер тени ──
       this.togShad.addEventListener('click', function() { self.toggleShadow(); });
 
@@ -1196,6 +1461,36 @@
       document.querySelectorAll('[data-lang-target]').forEach(function(btn) {
         btn.addEventListener('click', function() { self.setLang(btn.getAttribute('data-lang-target')); });
       });
+    }
+
+    _slugify(text) {
+        var map = {
+            'а':'a', 'б':'b', 'в':'v', 'г':'g', 'д':'d', 'е':'e', 'ё':'e', 'ж':'zh', 'з':'z', 'и':'i', 'й':'y', 'к':'k', 'л':'l', 'м':'m', 'н':'n', 'о':'o', 'п':'p', 'р':'r', 'с':'s', 'т':'t', 'у':'u', 'ф':'f', 'х':'h', 'ц':'ts', 'ч':'ch', 'ш':'sh', 'щ':'sch', 'ъ':'', 'ы':'y', 'ь':'', 'э':'e', 'ю':'yu', 'я':'ya',
+            'є':'ye', 'і':'i', 'ї':'yi', 'ґ':'g', ' ' : '-'
+        };
+        var slug = text.toLowerCase().split('').map(function(c) {
+            return map[c] !== undefined ? map[c] : c;
+        }).join('');
+        return slug.replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '') || 'webreadypic-product';
+    }
+
+    downloadSingle(id) {
+        var entry = this._files.get(id);
+        if (!entry || !entry.resultBlob) return;
+        
+        var ext = this._cfg.format === 'jpeg' ? 'jpg' : this._cfg.format;
+        var base;
+        if (entry.seoData && entry.seoData.title) {
+            base = this._slugify(entry.seoData.title);
+        } else {
+            base = entry.file.name.replace(/\.[^/.]+$/, '');
+        }
+        
+        var a = document.createElement('a');
+        a.href = URL.createObjectURL(entry.resultBlob);
+        a.download = base + '.' + ext;
+        a.click();
+        setTimeout(function() { URL.revokeObjectURL(a.href); }, 60000);
     }
 
     // Добавляет файлы в очередь (с проверкой лимита)
@@ -1284,15 +1579,29 @@
 
     // Скачивает ZIP со всеми обработанными файлами
     async downloadZip() {
+      var self = this;
       var done = Array.from(this._files.values()).filter(function(e) { return e.status === 'done' && e.resultBlob; });
       if (!done.length) { this._toast(TRANSLATIONS[this._lang].noFilesReady, 'warning'); return; }
       if (typeof JSZip === 'undefined') { this._toast('JSZip не загружен. Проверьте интернет.', 'error'); return; }
 
       var zip = new JSZip();
       var ext = this._cfg.format === 'jpeg' ? 'jpg' : this._cfg.format;
+      var usedNames = {};
       done.forEach(function(e) {
-        var base = e.file.name.replace(/.[^/.]+$/, '');
-        zip.file(base + '.' + ext, e.resultBlob);
+        var base;
+        if (e.seoData && e.seoData.title) {
+            base = self._slugify(e.seoData.title);
+        } else {
+            base = e.file.name.replace(/\.[^/.]+$/, '');
+        }
+        var fileName = base + '.' + ext;
+        if (usedNames[fileName]) {
+            fileName = base + '-' + usedNames[fileName] + '.' + ext;
+            usedNames[base + '.' + ext]++;
+        } else {
+            usedNames[fileName] = 1;
+        }
+        zip.file(fileName, e.resultBlob);
       });
 
       var zipBlob = await zip.generateAsync({ type: 'blob', compression: 'DEFLATE', compressionOptions: { level: 6 } });
@@ -1351,10 +1660,33 @@
 
     setBackground(bg) {
       this._cfg.background = bg;
-      document.querySelectorAll('[data-bg]').forEach(function(el) { el.classList.toggle('on', el.dataset.bg === bg); });
-      var keys = { podium: 'bg_podium', studio: 'bg_studio', minimal: 'bg_minimal', dark: 'bg_dark' };
-      var key = keys[bg] || 'bg_podium';
-      if (this.bgLabel) { this.bgLabel.dataset.i18n = key; this.bgLabel.textContent = TRANSLATIONS[this._lang][key]; }
+      // Убираем .on со всех свотчей и custom-label
+      document.querySelectorAll('[data-bg]').forEach(function(el) {
+        el.classList.toggle('on', el.dataset.bg === bg);
+      });
+      // Для произвольного цвета (hex) подсвечиваем кнопку +
+      if (bg && bg.startsWith('#')) {
+        var customLabel = document.getElementById('custom-color-label');
+        if (customLabel) customLabel.classList.add('on');
+      }
+      // Обновляем подпись
+      var t = TRANSLATIONS[this._lang];
+      var keys = {
+        transparent: 'bg_transparent',
+        white:       'bg_white',
+        lightgray:   'bg_lightgray',
+        gradient:    'bg_gradient',
+        dark:        'bg_dark',
+        custom:      'bg_custom',
+      };
+      var label = '';
+      if (bg && bg.startsWith('#')) {
+        label = (t.bg_custom || '🎨 Свой цвет') + ': ' + bg.toUpperCase();
+      } else {
+        var key = keys[bg] || 'bg_transparent';
+        label = t[key] || bg;
+      }
+      if (this.bgLabel) { this.bgLabel.textContent = label; }
     }
 
     toggleShadow() { this._cfg.shadow = !this._cfg.shadow; this.togShad.classList.toggle('on', this._cfg.shadow); }
@@ -1400,8 +1732,9 @@
       this._group('[data-preset]', function(b) { return b.dataset.preset === 'optimal'; });
       this._group('[data-format]', function(b) { return b.dataset.format === 'webp'; });
       this._group('[data-ratio]',  function(b) { return b.dataset.ratio  === '1:1'; });
-      document.querySelectorAll('[data-bg]').forEach(function(el) { el.classList.toggle('on', el.dataset.bg === 'podium'); });
+      document.querySelectorAll('[data-bg]').forEach(function(el) { el.classList.toggle('on', el.dataset.bg === 'transparent'); });
     }
+
 
     // Переключает класс 'on' на группе элементов
     _group(sel, pred) {
@@ -1541,30 +1874,42 @@
       var shimmer = status === 'processing' ? '<div class="shimmer-bar mt-2 rounded-full"></div>' : '';
 
       var removeBtn = '<button class="absolute top-2 right-2 w-6 h-6 rounded-full bg-slate-950/80 hover:bg-rose-600/90 text-white flex items-center justify-center text-[10px] border border-white/10 opacity-0 group-hover/card:opacity-100 transition-opacity duration-200" data-remove="' + id + '" title="' + (this._lang === 'ru' ? 'Удалить' : 'Remove') + '">&#10005;</button>';
+      var downloadBtn = (status === 'done' && entry.resultBlob) 
+        ? '<button class="absolute top-2 right-10 w-6 h-6 rounded-full bg-slate-950/80 hover:bg-cyan-600/90 text-white flex items-center justify-center text-[10px] border border-white/10 opacity-0 group-hover/card:opacity-100 transition-opacity duration-200" data-download="' + id + '" title="' + (this._lang === 'ru' ? 'Скачать' : 'Download') + '">&#8681;</button>' 
+        : '';
 
       var savingsBadge = (status === 'done' && savings !== null) 
         ? '<div class="absolute bottom-2 right-2 px-2 py-0.5 rounded-md bg-emerald-500/20 backdrop-blur-sm border border-emerald-500/40 text-[9px] font-extrabold text-emerald-400 shadow-md">-' + savings + '%</div>'
         : '';
         
-      var seoBtn = (status === 'done' && entry.resultBlob) 
-        ? '<button onclick="window.app.generateSEO(\'' + id + '\')" class="w-full mt-2 py-1.5 px-2 bg-gradient-to-r from-violet-500/20 to-cyan-500/20 hover:from-violet-500/40 hover:to-cyan-500/40 border border-violet-500/30 rounded-lg text-xs font-bold text-white transition-all shadow-lg flex items-center justify-center gap-2"><span class="text-[14px]">🪄</span> ' + t.btnSeo + '</button>'
-        : '';
+      var seoBtn = '';
+      if (status === 'done' && entry.resultBlob && !entry.seoData) {
+        var platId = 'plat_' + id;
+        seoBtn = '<div class="mt-2"><select id="' + platId + '" class="w-full mb-1 py-1.5 px-2 bg-slate-900/80 border border-slate-700/50 rounded-lg text-[10px] font-semibold text-slate-300 outline-none hover:border-cyan-500/30 transition-colors">'
+               + '<option value="prom">Prom.ua</option>'
+               + '<option value="olx">OLX / Rozetka</option>'
+               + '<option value="insta">Instagram / Соцсети</option>'
+               + '</select>'
+               + '<button onclick="window.app.generateSEO(\'' + id + '\', document.getElementById(\'' + platId + '\').value)" class="w-full py-1.5 px-2 bg-gradient-to-r from-violet-500/20 to-cyan-500/20 hover:from-violet-500/40 hover:to-cyan-500/40 border border-violet-500/30 rounded-lg text-xs font-bold text-white transition-all shadow-lg flex items-center justify-center gap-2"><span class="text-[14px]">🪄</span> ' + t.btnSeo + '</button></div>';
+      }
         
       var seoBlock = '';
       if (entry.seoLoading) {
         seoBlock = '<div class="mt-2 p-3 bg-slate-900/50 rounded-xl border border-white/5 text-[10px] text-slate-300 animate-pulse text-center font-bold tracking-wider uppercase">' + t.seoAnalyzing + '</div>';
-      } else if (entry.seoText) {
-        seoBlock = '<div class="mt-2 p-2 bg-slate-900/80 rounded-xl border border-cyan-500/30 text-[10px] text-slate-200 leading-relaxed relative">'
-                 + '<div class="whitespace-pre-wrap max-h-32 overflow-y-auto custom-scrollbar">' + this._esc(entry.seoText) + '</div>'
-                 + '<button onclick="navigator.clipboard.writeText(decodeURIComponent(\'' + encodeURIComponent(entry.seoText) + '\')); window.app._toast(\'' + t.toastCopied + '\', \'success\')" class="mt-2 w-full py-1.5 bg-slate-800 hover:bg-slate-700 rounded-md text-[10px] font-bold text-cyan-400 transition-colors">' + t.btnCopy + '</button>'
-                 + '</div>';
+      } else if (entry.seoData) {
+        seoBtn = '<button onclick="window.app.openSeoModal(\'' + id + '\')" class="w-full mt-2 py-1.5 px-2 bg-slate-800 hover:bg-slate-700 border border-cyan-500/30 rounded-lg text-xs font-bold text-cyan-400 transition-all shadow-lg flex items-center justify-center gap-2">👀 Подивитись SEO</button>';
       }
+
+      var eraserBtn = (status === 'done' && entry.resultBlob)
+        ? '<button onclick="window.app.openEraserModal(\'' + id + '\')" class="w-full mt-1.5 py-1.5 px-2 bg-slate-900/60 hover:bg-slate-800 border border-slate-700/40 hover:border-orange-500/30 rounded-lg text-[10px] font-bold text-slate-400 hover:text-orange-300 transition-all flex items-center justify-center gap-2">' + t.btnEraser + '</button>'
+        : '';
 
       return '<div class="relative group/card">'
         + '<div class="relative aspect-square rounded-xl overflow-hidden bg-slate-955/40 border border-white/5">'
         +   '<img class="w-full h-full object-cover" src="' + thumbUrl + '" alt="' + name + '" loading="lazy">'
         +   '<div class="absolute top-2 left-2 px-1.5 py-0.5 rounded-md bg-slate-950/80 border border-white/10 text-[8px] font-extrabold uppercase tracking-wider text-cyan-400">' + format.toUpperCase() + '</div>'
         +   removeBtn
+        +   downloadBtn
         +   savingsBadge
         + '</div>'
         + '<div class="mt-2 px-1">'
@@ -1574,13 +1919,14 @@
         +   statusRow
         +   seoBtn
         +   seoBlock
+        +   eraserBtn
         +   shimmer
         + '</div>'
         + '</div>';
     }
     
     // Генерация SEO через Gemini API
-    async generateSEO(id) {
+    async generateSEO(id, platform) {
       var entry = this._files.get(id);
       if (!entry || !entry.resultBlob || entry.seoLoading) return;
       
@@ -1595,7 +1941,15 @@
         });
         
         var langName = { ua: 'українською мовою', ru: 'на русском языке', en: 'in English language' }[this._lang] || 'українською мовою';
-        var promptText = "Сгенерируй SEO-карточку для этого товара " + langName + ". Верни: 1. Продающий заголовок для маркетплейса. 2. Подробное описание товара с преимуществами и эмодзи. 3. Список из 10 ключевых SEO-тегов через запятую. Форматируй текст чисто, без лишних блоков. Только полезный текст.";
+        var pName = { prom: 'Prom.ua', olx: 'OLX / Rozetka', insta: 'Instagram / Соцсети' }[platform] || 'маркетплейса';
+        
+        var promptText = `Сгенерируй SEO-карточку для этого товара ${langName}. Площадка: ${pName}. 
+Верни строго валидный JSON без markdown-оберток (без \`\`\`json), со следующими полями:
+{
+  "title": "Продающий заголовок для ${pName}",
+  "description": "Подробное описание товара с преимуществами и эмодзи (используй **жирный** для акцентов и списки со знаком -)",
+  "tags": "10-15 ключевых SEO-тегов через запятую"
+}`;
 
         var response = await fetch('/api/gemini', {
           method: 'POST',
@@ -1609,7 +1963,15 @@
         
         var data = await response.json();
         if (response.ok && data.candidates && data.candidates[0]) {
-          entry.seoText = data.candidates[0].content.parts[0].text;
+          let text = data.candidates[0].content.parts[0].text;
+          text = text.replace(/```json/gi, '').replace(/```/g, '').trim();
+          try {
+            entry.seoData = JSON.parse(text);
+          } catch(err) {
+            console.error('JSON parse error:', err, text);
+            entry.seoData = { title: "Generation Error", description: text, tags: "" };
+          }
+          this.openSeoModal(id);
         } else {
           throw new Error(data.error || 'Ошибка API');
         }
@@ -1621,6 +1983,195 @@
         this._refreshCard(id);
       }
     }
+
+    openSeoModal(id) {
+      var entry = this._files.get(id);
+      if (!entry || !entry.seoData) return;
+      
+      var d = entry.seoData;
+      document.getElementById('seo-modal-title').textContent = d.title || '';
+      
+      var descHtml = this._esc(d.description || '')
+          .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+          .replace(/\*(.*?)\*/g, '<em>$1</em>');
+          
+      var lines = descHtml.split('\n');
+      var html = '';
+      var inList = false;
+      lines.forEach(function(line) {
+         var trimmed = line.trim();
+         if (trimmed.startsWith('- ') || trimmed.startsWith('* ')) {
+            if (!inList) { html += '<ul>'; inList = true; }
+            html += '<li>' + trimmed.substring(2) + '</li>';
+         } else {
+            if (inList) { html += '</ul>'; inList = false; }
+            html += trimmed + (trimmed === '' ? '<br/>' : '<br/>'); 
+         }
+      });
+      if (inList) html += '</ul>';
+      html = html.replace(/(<br\/>)+/g, '<br/>').replace(/<br\/>$/, '');
+      document.getElementById('seo-modal-desc').innerHTML = html;
+      
+      var tagsRaw = d.tags || '';
+      var tagsArr = tagsRaw.split(',').map(function(t) { return t.trim().replace(/^#/, ''); }).filter(Boolean);
+      document.getElementById('seo-modal-tags').setAttribute('data-raw', tagsArr.join(', '));
+      document.getElementById('seo-modal-tags').innerHTML = tagsArr.map(function(t) {
+         return '<span class="seo-tag">#' + t + '</span>';
+      }).join('');
+      
+      document.getElementById('seo-modal-wrap').classList.add('open');
+    }
+
+    _copyToClipboard(elementId, isHtml, isTags) {
+      var el = document.getElementById(elementId);
+      var text = '';
+      if (isTags) {
+         text = el.getAttribute('data-raw');
+      } else if (isHtml) {
+         var tmp = document.createElement('div');
+         tmp.innerHTML = el.innerHTML.replace(/<br\s*\/?>/gi, '\n').replace(/<\/li>/gi, '\n').replace(/<li>/gi, '- ');
+         text = tmp.textContent.trim();
+      } else {
+         text = el.textContent.trim();
+      }
+      
+      if (text) {
+         navigator.clipboard.writeText(text);
+         this._toast('Текст скопійовано', 'success');
+      }
+    }
+
+    // ── Ластик — ручная коррекция вырезанного изображения ──
+    openEraserModal(id) {
+      var self  = this;
+      var entry = this._files.get(id);
+      if (!entry || !entry.resultBlob) return;
+      var t = TRANSLATIONS[this._lang];
+
+      var wrap = document.getElementById('eraser-modal-wrap');
+      var ring = document.getElementById('eraser-cursor-ring');
+
+      // Параметры кисти
+      var tool     = 'erase';  // 'erase' | 'restore'
+      var brushSz  = 28;
+      var painting = false;
+
+      // Обновляем заголовок и кнопки под текущий язык
+      document.getElementById('eraser-modal-title').textContent = t.eraserTitle;
+      document.getElementById('eraser-btn-save').textContent    = t.eraserSave;
+      document.getElementById('eraser-btn-cancel').textContent  = t.eraserCancel;
+      document.getElementById('eraser-btn-erase').textContent   = t.eraserErase;
+      document.getElementById('eraser-btn-restore').textContent = t.eraserBrush;
+
+      // Сбрасываем ползунок
+      var sizeSlider = document.getElementById('eraser-size-slider');
+      sizeSlider.value = brushSz;
+      sizeSlider.oninput = function() {
+        brushSz = parseInt(this.value);
+        ring.style.width  = brushSz + 'px';
+        ring.style.height = brushSz + 'px';
+      };
+
+      // Убираем старые обработчики событий через замену canvas
+      var oldEc = document.getElementById('eraser-canvas');
+      var newEc = oldEc.cloneNode(false);
+      oldEc.parentNode.replaceChild(newEc, oldEc);
+      var ec  = newEc;
+      var ctx = ec.getContext('2d');
+
+      // Загружаем изображение из blob
+      var origImg = new Image();
+      var blobUrl = URL.createObjectURL(entry.resultBlob);
+      origImg.onload = function() {
+        ec.width  = origImg.naturalWidth;
+        ec.height = origImg.naturalHeight;
+        ctx.drawImage(origImg, 0, 0);
+        URL.revokeObjectURL(blobUrl);
+      };
+      origImg.src = blobUrl;
+
+      // Активное состояние кнопок тула
+      function setTool(toolName) {
+        tool = toolName;
+        document.getElementById('eraser-btn-erase').classList.toggle('active', toolName === 'erase');
+        document.getElementById('eraser-btn-restore').classList.toggle('active', toolName === 'restore');
+      }
+      setTool('erase');
+      document.getElementById('eraser-btn-erase').onclick   = function() { setTool('erase'); };
+      document.getElementById('eraser-btn-restore').onclick = function() { setTool('restore'); };
+
+      // Курсор-кольцо
+      function updateRing(e) {
+        ring.style.display = 'block';
+        ring.style.left    = e.clientX + 'px';
+        ring.style.top     = e.clientY + 'px';
+        ring.style.width   = brushSz + 'px';
+        ring.style.height  = brushSz + 'px';
+      }
+
+      function getPos(e) {
+        var rect   = ec.getBoundingClientRect();
+        var scaleX = ec.width  / rect.width;
+        var scaleY = ec.height / rect.height;
+        var cx = e.touches ? e.touches[0].clientX : e.clientX;
+        var cy = e.touches ? e.touches[0].clientY : e.clientY;
+        return { x: (cx - rect.left) * scaleX, y: (cy - rect.top) * scaleY };
+      }
+
+      function doPaint(e) {
+        if (!painting) return;
+        var pos = getPos(e);
+        var r   = brushSz * (ec.width / ec.getBoundingClientRect().width) / 2;
+        if (tool === 'erase') {
+          ctx.globalCompositeOperation = 'destination-out';
+          ctx.beginPath();
+          ctx.arc(pos.x, pos.y, r, 0, Math.PI * 2);
+          ctx.fillStyle = 'rgba(0,0,0,1)';
+          ctx.fill();
+          ctx.globalCompositeOperation = 'source-over';
+        } else {
+          // Restore: восстанавливаем пиксели из оригинала
+          ctx.globalCompositeOperation = 'source-over';
+          ctx.drawImage(origImg,
+            Math.max(0, pos.x - r), Math.max(0, pos.y - r), r * 2, r * 2,
+            Math.max(0, pos.x - r), Math.max(0, pos.y - r), r * 2, r * 2
+          );
+        }
+      }
+
+      // Привязываем события к новому canvas
+      ec.addEventListener('mousedown',  function(e) { painting = true; doPaint(e); });
+      ec.addEventListener('mouseup',    function()  { painting = false; });
+      ec.addEventListener('mouseleave', function()  { painting = false; ring.style.display = 'none'; });
+      ec.addEventListener('mouseenter', function(e) { updateRing(e); });
+      ec.addEventListener('mousemove',  function(e) { updateRing(e); doPaint(e); });
+      ec.addEventListener('touchstart', function(e) { e.preventDefault(); painting = true; doPaint(e); }, { passive: false });
+      ec.addEventListener('touchend',   function()  { painting = false; });
+      ec.addEventListener('touchmove',  function(e) { e.preventDefault(); doPaint(e); }, { passive: false });
+
+      // Кнопка Сохранить
+      document.getElementById('eraser-btn-save').onclick = function() {
+        ec.toBlob(function(blob) {
+          if (!blob) return;
+          if (entry.thumbUrl) URL.revokeObjectURL(entry.thumbUrl);
+          entry.resultBlob = blob;
+          entry.thumbUrl   = URL.createObjectURL(blob);
+          self._refreshCard(id);
+          wrap.classList.remove('open');
+          ring.style.display = 'none';
+          self._toast(t.eraserSaved, 'success');
+        }, 'image/png');
+      };
+
+      // Кнопка Отмена
+      document.getElementById('eraser-btn-cancel').onclick = function() {
+        wrap.classList.remove('open');
+        ring.style.display = 'none';
+      };
+
+      wrap.classList.add('open');
+    }
+
 
     // Экранирование HTML
     _esc(str) {
@@ -1669,5 +2220,75 @@
     window.app = new AppController();
   });
   </script>
+
+  <!-- SEO Modal -->
+  <div id="seo-modal-wrap">
+    <div class="seo-modal-content">
+      <button class="seo-modal-close" onclick="document.getElementById('seo-modal-wrap').classList.remove('open')">✕</button>
+      <div class="flex items-center gap-3 mb-6">
+        <span class="text-2xl">✨</span>
+        <h2 class="text-xl font-extrabold text-white font-outfit" id="seo-modal-title-ui">SEO-картка згенерована</h2>
+      </div>
+      
+      <!-- Заголовок -->
+      <div class="mb-5 bg-slate-900/50 p-4 rounded-xl border border-white/5 relative group">
+        <div class="text-[10px] text-slate-400 font-bold uppercase tracking-wider mb-2">Заголовок</div>
+        <div id="seo-modal-title" class="text-white font-semibold text-lg pr-20"></div>
+        <button class="copy-btn absolute top-3 right-3" onclick="window.app._copyToClipboard('seo-modal-title')">
+          📋 Копіювати
+        </button>
+      </div>
+
+      <!-- Описание -->
+      <div class="mb-5 bg-slate-900/50 p-4 rounded-xl border border-white/5 relative group">
+        <div class="text-[10px] text-slate-400 font-bold uppercase tracking-wider mb-2">Опис</div>
+        <div id="seo-modal-desc" class="text-slate-300 text-sm leading-relaxed seo-markdown mt-2"></div>
+        <button class="copy-btn absolute top-3 right-3" onclick="window.app._copyToClipboard('seo-modal-desc', true)">
+          📋 Копіювати
+        </button>
+      </div>
+
+      <!-- Теги -->
+      <div class="bg-slate-900/50 p-4 rounded-xl border border-white/5 relative group">
+        <div class="text-[10px] text-slate-400 font-bold uppercase tracking-wider mb-3">SEO-Теги</div>
+        <div id="seo-modal-tags" class="flex flex-wrap pr-20" data-raw=""></div>
+        <button class="copy-btn absolute top-3 right-3" onclick="window.app._copyToClipboard('seo-modal-tags', false, true)">
+          📋 Копіювати
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Eraser Modal -->
+  <div id="eraser-modal-wrap">
+    <div id="eraser-cursor-ring" class="eraser-cursor-ring"></div>
+    <div class="eraser-modal-content">
+      <!-- Toolbar -->
+      <div class="eraser-toolbar">
+        <div class="flex items-center gap-2 mr-auto">
+          <span class="text-lg">🧹</span>
+          <span id="eraser-modal-title" class="text-sm font-extrabold text-white">Ручна корекція</span>
+        </div>
+        <!-- Tool buttons -->
+        <button id="eraser-btn-erase" class="eraser-tool-btn active">🧹 Ластик</button>
+        <button id="eraser-btn-restore" class="eraser-tool-btn">🖌 Кисть</button>
+        <!-- Brush size -->
+        <div class="flex items-center gap-2">
+          <span class="text-[10px] text-slate-400 font-semibold whitespace-nowrap">Розмір</span>
+          <input id="eraser-size-slider" type="range" min="5" max="120" value="28"
+            class="w-20 h-1.5 accent-cyan-400 cursor-pointer">
+          <span class="text-[10px] text-slate-300 font-bold w-5 text-center" id="eraser-size-label">28</span>
+        </div>
+        <!-- Save / Cancel -->
+        <button id="eraser-btn-cancel" class="eraser-cancel-btn">Відмінити</button>
+        <button id="eraser-btn-save" class="eraser-save-btn">✅ Зберегти</button>
+      </div>
+      <!-- Canvas area -->
+      <div class="eraser-canvas-wrap">
+        <canvas id="eraser-canvas"></canvas>
+      </div>
+    </div>
+  </div>
+
 </body>
 </html>
