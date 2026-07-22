@@ -322,17 +322,39 @@
       flex-wrap: wrap;
     }
     .eraser-canvas-wrap {
-      flex: 1; overflow: auto; display: flex; align-items: center; justify-content: center;
+      flex: 1; overflow: hidden; position: relative;
       background: conic-gradient(#1e293b 0 25%, #0f172a 25% 50%, #1e293b 50% 75%, #0f172a 75%);
       background-size: 24px 24px;
-      padding: 16px; min-height: 300px;
+      padding: 0; min-height: 300px; cursor: none;
+      user-select: none; -webkit-user-select: none;
+    }
+    /* внутренний контейнер с transform-origin: center center */
+    .eraser-viewport {
+      position: absolute; inset: 0;
+      display: flex; align-items: center; justify-content: center;
+    }
+    .eraser-stage {
+      position: relative; display: inline-flex;
+      transform-origin: center center;
+      will-change: transform;
+    }
+    #eraser-bg-canvas, #eraser-canvas {
+      position: absolute; top: 0; left: 0;
+      border-radius: 8px;
+      display: block;
+    }
+    #eraser-bg-canvas {
+      /* Фон-слой — нередактируемый */
+      z-index: 1;
     }
     #eraser-canvas {
-      max-width: 100%; max-height: 65vh;
-      border-radius: 8px;
+      /* Слой объекта — редактируемый */
+      z-index: 2; cursor: none;
       box-shadow: 0 0 0 2px rgba(0,242,254,0.2), 0 20px 40px -10px rgba(0,0,0,0.6);
-      cursor: none;
-      display: block;
+    }
+    /* Плейсхолдер — невидимый блок-размерщик */
+    #eraser-canvas-sizer {
+      display: block; visibility: hidden; pointer-events: none;
     }
     .eraser-cursor-ring {
       position: fixed; pointer-events: none; z-index: 1200;
@@ -2048,125 +2070,202 @@
       if (!entry || !entry.resultBlob) return;
       var t = TRANSLATIONS[this._lang];
 
-      var wrap = document.getElementById('eraser-modal-wrap');
-      var ring = document.getElementById('eraser-cursor-ring');
+      var wrap       = document.getElementById('eraser-modal-wrap');
+      var ring       = document.getElementById('eraser-cursor-ring');
+      var canvasWrap = document.getElementById('eraser-canvas-wrap');
+      var stage      = document.getElementById('eraser-stage');
 
-      // Параметры кисти
-      var tool     = 'erase';  // 'erase' | 'restore'
+      // ── Параметры кисти и зума ──
+      var tool     = 'erase';
       var brushSz  = 28;
       var painting = false;
+      var zoom     = 1.0;
+      var panX = 0, panY = 0;
+      var panning = false, panStartX = 0, panStartY = 0, panOriginX = 0, panOriginY = 0;
 
-      // Обновляем заголовок и кнопки под текущий язык
+      // ── Обновляем i18n кнопок ──
       document.getElementById('eraser-modal-title').textContent = t.eraserTitle;
       document.getElementById('eraser-btn-save').textContent    = t.eraserSave;
       document.getElementById('eraser-btn-cancel').textContent  = t.eraserCancel;
       document.getElementById('eraser-btn-erase').textContent   = t.eraserErase;
       document.getElementById('eraser-btn-restore').textContent = t.eraserBrush;
 
-      // Сбрасываем ползунок
+      // ── Ползунок размера кисти ──
       var sizeSlider = document.getElementById('eraser-size-slider');
+      var sizeLabel  = document.getElementById('eraser-size-label');
       sizeSlider.value = brushSz;
       sizeSlider.oninput = function() {
         brushSz = parseInt(this.value);
-        ring.style.width  = brushSz + 'px';
-        ring.style.height = brushSz + 'px';
+        if (sizeLabel) sizeLabel.textContent = brushSz;
+        ring.style.width  = (brushSz * zoom) + 'px';
+        ring.style.height = (brushSz * zoom) + 'px';
       };
 
-      // Убираем старые обработчики событий через замену canvas
-      var oldEc = document.getElementById('eraser-canvas');
-      var newEc = oldEc.cloneNode(false);
-      oldEc.parentNode.replaceChild(newEc, oldEc);
-      var ec  = newEc;
-      var ctx = ec.getContext('2d');
+      // ── Зум ──
+      var zoomSlider = document.getElementById('eraser-zoom-slider');
+      var zoomLabel  = document.getElementById('eraser-zoom-label');
 
-      // Загружаем изображение из blob
+      function applyTransform() {
+        if (stage) stage.style.transform = 'translate(' + panX + 'px,' + panY + 'px) scale(' + zoom + ')';
+        if (zoomLabel)  zoomLabel.textContent  = Math.round(zoom * 100) + '%';
+        if (zoomSlider) zoomSlider.value = Math.round(zoom * 100);
+      }
+
+      function setZoom(newZ) {
+        zoom = Math.max(0.5, Math.min(5, newZ));
+        applyTransform();
+        ring.style.width  = (brushSz * zoom) + 'px';
+        ring.style.height = (brushSz * zoom) + 'px';
+      }
+
+      if (zoomSlider) { zoomSlider.value = 100; zoomSlider.oninput = function() { setZoom(parseInt(this.value) / 100); }; }
+      var zIn  = document.getElementById('eraser-zoom-in');
+      var zOut = document.getElementById('eraser-zoom-out');
+      var zRst = document.getElementById('eraser-zoom-reset');
+      if (zIn)  zIn.onclick  = function() { setZoom(zoom + 0.25); };
+      if (zOut) zOut.onclick = function() { setZoom(zoom - 0.25); };
+      if (zRst) zRst.onclick = function() { zoom = 1; panX = 0; panY = 0; applyTransform(); };
+
+      // ── Заменяем canvas через cloneNode ──
+      var oldEcTop = document.getElementById('eraser-canvas');
+      var oldEcBg  = document.getElementById('eraser-bg-canvas');
+      var newEcTop = oldEcTop.cloneNode(false);
+      var newEcBg  = oldEcBg ? oldEcBg.cloneNode(false) : document.createElement('canvas');
+      newEcBg.id   = 'eraser-bg-canvas';
+      if (oldEcBg) { oldEcBg.replaceWith(newEcBg); } else if (stage) { stage.insertBefore(newEcBg, oldEcTop); }
+      oldEcTop.replaceWith(newEcTop);
+
+      var ec    = newEcTop;
+      var bgEc  = newEcBg;
+      var ctx   = ec.getContext('2d');
+      var bgCtx = bgEc.getContext('2d');
+
+      zoom = 1; panX = 0; panY = 0;
+      applyTransform();
+
+      // ── Загружаем изображение из blob ──
       var origImg = new Image();
       var blobUrl = URL.createObjectURL(entry.resultBlob);
       origImg.onload = function() {
-        ec.width  = origImg.naturalWidth;
-        ec.height = origImg.naturalHeight;
+        var W = origImg.naturalWidth;
+        var H = origImg.naturalHeight;
+        ec.width = bgEc.width = W;
+        ec.height = bgEc.height = H;
+
+        var sizer = document.getElementById('eraser-canvas-sizer');
+        if (sizer) { sizer.width = W; sizer.height = H; }
+
+        // ── Фон-подложка (нижний слой — не редактируется) ──
+        var bg = self._cfg ? self._cfg.background : 'white';
+        if (bg === 'white') {
+          bgCtx.fillStyle = '#FFFFFF'; bgCtx.fillRect(0, 0, W, H);
+        } else if (bg === 'lightgray') {
+          bgCtx.fillStyle = '#F3F4F6'; bgCtx.fillRect(0, 0, W, H);
+        } else if (bg === 'gradient') {
+          var gr = bgCtx.createRadialGradient(W/2, H*0.4, H*0.05, W/2, H*0.5, Math.max(W,H)*0.75);
+          gr.addColorStop(0, '#FFFFFF'); gr.addColorStop(0.5, '#F0F2F5'); gr.addColorStop(1, '#E2E6EA');
+          bgCtx.fillStyle = gr; bgCtx.fillRect(0, 0, W, H);
+        } else if (bg === 'dark') {
+          var gr2 = bgCtx.createLinearGradient(0, 0, 0, H);
+          gr2.addColorStop(0, '#1F2937'); gr2.addColorStop(1, '#111827');
+          bgCtx.fillStyle = gr2; bgCtx.fillRect(0, 0, W, H);
+        } else if (bg && bg.startsWith('#')) {
+          bgCtx.fillStyle = bg; bgCtx.fillRect(0, 0, W, H);
+        }
+        // transparent: bgEc пуст, шахматка в CSS wrap
+
+        // ── Объект на верхнем слое ──
         ctx.drawImage(origImg, 0, 0);
         URL.revokeObjectURL(blobUrl);
       };
       origImg.src = blobUrl;
 
-      // Активное состояние кнопок тула
+      // ── Инструменты ──
       function setTool(toolName) {
         tool = toolName;
         document.getElementById('eraser-btn-erase').classList.toggle('active', toolName === 'erase');
         document.getElementById('eraser-btn-restore').classList.toggle('active', toolName === 'restore');
+        var bPan = document.getElementById('eraser-btn-pan');
+        if (bPan) bPan.classList.toggle('active', toolName === 'pan');
+        canvasWrap.style.cursor = (toolName === 'pan') ? 'grab' : 'none';
       }
       setTool('erase');
       document.getElementById('eraser-btn-erase').onclick   = function() { setTool('erase'); };
       document.getElementById('eraser-btn-restore').onclick = function() { setTool('restore'); };
+      var bPan = document.getElementById('eraser-btn-pan');
+      if (bPan) bPan.onclick = function() { setTool('pan'); };
 
-      // Курсор-кольцо
-      function updateRing(e) {
-        ring.style.display = 'block';
-        ring.style.left    = e.clientX + 'px';
-        ring.style.top     = e.clientY + 'px';
-        ring.style.width   = brushSz + 'px';
-        ring.style.height  = brushSz + 'px';
-      }
-
-      function getPos(e) {
-        var rect   = ec.getBoundingClientRect();
-        var scaleX = ec.width  / rect.width;
-        var scaleY = ec.height / rect.height;
+      function getCanvasPos(e) {
+        var rect = ec.getBoundingClientRect();
         var cx = e.touches ? e.touches[0].clientX : e.clientX;
         var cy = e.touches ? e.touches[0].clientY : e.clientY;
-        return { x: (cx - rect.left) * scaleX, y: (cy - rect.top) * scaleY };
+        return { x: (cx - rect.left) * (ec.width / rect.width), y: (cy - rect.top) * (ec.height / rect.height) };
+      }
+      function getClientPos(e) {
+        return { x: e.touches ? e.touches[0].clientX : e.clientX, y: e.touches ? e.touches[0].clientY : e.clientY };
+      }
+
+      function updateRing(e) {
+        if (tool === 'pan') { ring.style.display = 'none'; return; }
+        var cp = getClientPos(e); var sz = brushSz * zoom;
+        ring.style.display = 'block'; ring.style.left = cp.x + 'px'; ring.style.top = cp.y + 'px';
+        ring.style.width = sz + 'px'; ring.style.height = sz + 'px';
       }
 
       function doPaint(e) {
-        if (!painting) return;
-        var pos = getPos(e);
-        var r   = brushSz * (ec.width / ec.getBoundingClientRect().width) / 2;
+        if (!painting || tool === 'pan') return;
+        var pos = getCanvasPos(e);
+        var r   = brushSz / 2;
         if (tool === 'erase') {
           ctx.globalCompositeOperation = 'destination-out';
-          ctx.beginPath();
-          ctx.arc(pos.x, pos.y, r, 0, Math.PI * 2);
-          ctx.fillStyle = 'rgba(0,0,0,1)';
-          ctx.fill();
+          ctx.beginPath(); ctx.arc(pos.x, pos.y, r, 0, Math.PI * 2);
+          ctx.fillStyle = 'rgba(0,0,0,1)'; ctx.fill();
           ctx.globalCompositeOperation = 'source-over';
-        } else {
-          // Restore: восстанавливаем пиксели из оригинала
-          ctx.globalCompositeOperation = 'source-over';
-          ctx.drawImage(origImg,
-            Math.max(0, pos.x - r), Math.max(0, pos.y - r), r * 2, r * 2,
-            Math.max(0, pos.x - r), Math.max(0, pos.y - r), r * 2, r * 2
-          );
+        } else if (tool === 'restore') {
+          ctx.save(); ctx.globalCompositeOperation = 'source-over';
+          ctx.beginPath(); ctx.arc(pos.x, pos.y, r, 0, Math.PI * 2); ctx.clip();
+          ctx.drawImage(origImg, 0, 0); ctx.restore();
         }
       }
 
-      // Привязываем события к новому canvas
-      ec.addEventListener('mousedown',  function(e) { painting = true; doPaint(e); });
-      ec.addEventListener('mouseup',    function()  { painting = false; });
-      ec.addEventListener('mouseleave', function()  { painting = false; ring.style.display = 'none'; });
-      ec.addEventListener('mouseenter', function(e) { updateRing(e); });
-      ec.addEventListener('mousemove',  function(e) { updateRing(e); doPaint(e); });
-      ec.addEventListener('touchstart', function(e) { e.preventDefault(); painting = true; doPaint(e); }, { passive: false });
-      ec.addEventListener('touchend',   function()  { painting = false; });
-      ec.addEventListener('touchmove',  function(e) { e.preventDefault(); doPaint(e); }, { passive: false });
+      function startPan(e) {
+        panning = true; var cp = getClientPos(e);
+        panStartX = cp.x; panStartY = cp.y; panOriginX = panX; panOriginY = panY;
+        canvasWrap.style.cursor = 'grabbing';
+      }
+      function doPan(e) {
+        if (!panning) return; var cp = getClientPos(e);
+        panX = panOriginX + (cp.x - panStartX); panY = panOriginY + (cp.y - panStartY);
+        applyTransform();
+      }
+      function stopPan() { panning = false; if (tool === 'pan') canvasWrap.style.cursor = 'grab'; }
 
-      // Кнопка Сохранить
+      function onWheel(e) { e.preventDefault(); setZoom(zoom + (e.deltaY < 0 ? 0.15 : -0.15)); }
+
+      canvasWrap.addEventListener('mousedown',  function(e) { if (tool === 'pan') startPan(e); else { painting = true; doPaint(e); } });
+      canvasWrap.addEventListener('mouseup',    function()  { painting = false; stopPan(); });
+      canvasWrap.addEventListener('mouseleave', function()  { painting = false; stopPan(); ring.style.display = 'none'; });
+      canvasWrap.addEventListener('mouseenter', function(e) { updateRing(e); });
+      canvasWrap.addEventListener('mousemove',  function(e) { updateRing(e); doPan(e); doPaint(e); });
+      canvasWrap.addEventListener('wheel',      onWheel, { passive: false });
+      canvasWrap.addEventListener('touchstart', function(e) { e.preventDefault(); if (tool === 'pan') startPan(e); else { painting = true; doPaint(e); } }, { passive: false });
+      canvasWrap.addEventListener('touchend',   function()  { painting = false; stopPan(); });
+      canvasWrap.addEventListener('touchmove',  function(e) { e.preventDefault(); updateRing(e); if (tool === 'pan') doPan(e); else doPaint(e); }, { passive: false });
+
+      // ── Сохранить — только верхний слой (объект без фона) ──
       document.getElementById('eraser-btn-save').onclick = function() {
         ec.toBlob(function(blob) {
           if (!blob) return;
           if (entry.thumbUrl) URL.revokeObjectURL(entry.thumbUrl);
-          entry.resultBlob = blob;
-          entry.thumbUrl   = URL.createObjectURL(blob);
+          entry.resultBlob = blob; entry.thumbUrl = URL.createObjectURL(blob);
           self._refreshCard(id);
-          wrap.classList.remove('open');
-          ring.style.display = 'none';
+          wrap.classList.remove('open'); ring.style.display = 'none';
           self._toast(t.eraserSaved, 'success');
         }, 'image/png');
       };
 
-      // Кнопка Отмена
       document.getElementById('eraser-btn-cancel').onclick = function() {
-        wrap.classList.remove('open');
-        ring.style.display = 'none';
+        wrap.classList.remove('open'); ring.style.display = 'none';
       };
 
       wrap.classList.add('open');
@@ -2229,32 +2328,20 @@
         <span class="text-2xl">✨</span>
         <h2 class="text-xl font-extrabold text-white font-outfit" id="seo-modal-title-ui">SEO-картка згенерована</h2>
       </div>
-      
-      <!-- Заголовок -->
       <div class="mb-5 bg-slate-900/50 p-4 rounded-xl border border-white/5 relative group">
         <div class="text-[10px] text-slate-400 font-bold uppercase tracking-wider mb-2">Заголовок</div>
         <div id="seo-modal-title" class="text-white font-semibold text-lg pr-20"></div>
-        <button class="copy-btn absolute top-3 right-3" onclick="window.app._copyToClipboard('seo-modal-title')">
-          📋 Копіювати
-        </button>
+        <button class="copy-btn absolute top-3 right-3" onclick="window.app._copyToClipboard('seo-modal-title')">📋 Копіювати</button>
       </div>
-
-      <!-- Описание -->
       <div class="mb-5 bg-slate-900/50 p-4 rounded-xl border border-white/5 relative group">
         <div class="text-[10px] text-slate-400 font-bold uppercase tracking-wider mb-2">Опис</div>
         <div id="seo-modal-desc" class="text-slate-300 text-sm leading-relaxed seo-markdown mt-2"></div>
-        <button class="copy-btn absolute top-3 right-3" onclick="window.app._copyToClipboard('seo-modal-desc', true)">
-          📋 Копіювати
-        </button>
+        <button class="copy-btn absolute top-3 right-3" onclick="window.app._copyToClipboard('seo-modal-desc', true)">📋 Копіювати</button>
       </div>
-
-      <!-- Теги -->
       <div class="bg-slate-900/50 p-4 rounded-xl border border-white/5 relative group">
         <div class="text-[10px] text-slate-400 font-bold uppercase tracking-wider mb-3">SEO-Теги</div>
         <div id="seo-modal-tags" class="flex flex-wrap pr-20" data-raw=""></div>
-        <button class="copy-btn absolute top-3 right-3" onclick="window.app._copyToClipboard('seo-modal-tags', false, true)">
-          📋 Копіювати
-        </button>
+        <button class="copy-btn absolute top-3 right-3" onclick="window.app._copyToClipboard('seo-modal-tags', false, true)">📋 Копіювати</button>
       </div>
     </div>
   </div>
@@ -2263,30 +2350,68 @@
   <div id="eraser-modal-wrap">
     <div id="eraser-cursor-ring" class="eraser-cursor-ring"></div>
     <div class="eraser-modal-content">
+
       <!-- Toolbar -->
       <div class="eraser-toolbar">
-        <div class="flex items-center gap-2 mr-auto">
-          <span class="text-lg">🧹</span>
+        <!-- Title -->
+        <div class="flex items-center gap-2">
+          <span class="text-base">🧹</span>
           <span id="eraser-modal-title" class="text-sm font-extrabold text-white">Ручна корекція</span>
         </div>
+
+        <!-- Separator -->
+        <div class="w-px h-5 bg-white/10"></div>
+
         <!-- Tool buttons -->
-        <button id="eraser-btn-erase" class="eraser-tool-btn active">🧹 Ластик</button>
+        <button id="eraser-btn-erase"   class="eraser-tool-btn active">🧹 Ластик</button>
         <button id="eraser-btn-restore" class="eraser-tool-btn">🖌 Кисть</button>
+        <button id="eraser-btn-pan"     class="eraser-tool-btn">✋ Пан</button>
+
+        <!-- Separator -->
+        <div class="w-px h-5 bg-white/10"></div>
+
         <!-- Brush size -->
-        <div class="flex items-center gap-2">
+        <div class="flex items-center gap-1.5">
           <span class="text-[10px] text-slate-400 font-semibold whitespace-nowrap">Розмір</span>
           <input id="eraser-size-slider" type="range" min="5" max="120" value="28"
-            class="w-20 h-1.5 accent-cyan-400 cursor-pointer">
-          <span class="text-[10px] text-slate-300 font-bold w-5 text-center" id="eraser-size-label">28</span>
+            class="w-16 h-1.5 accent-cyan-400 cursor-pointer">
+          <span class="text-[10px] text-slate-300 font-bold w-6 text-center" id="eraser-size-label">28</span>
         </div>
-        <!-- Save / Cancel -->
-        <button id="eraser-btn-cancel" class="eraser-cancel-btn">Відмінити</button>
-        <button id="eraser-btn-save" class="eraser-save-btn">✅ Зберегти</button>
+
+        <!-- Separator -->
+        <div class="w-px h-5 bg-white/10"></div>
+
+        <!-- Zoom controls -->
+        <div class="flex items-center gap-1.5">
+          <button id="eraser-zoom-out" class="eraser-tool-btn" style="padding:4px 8px;font-size:14px;line-height:1;">&#8722;</button>
+          <input id="eraser-zoom-slider" type="range" min="50" max="500" value="100"
+            class="w-20 h-1.5 accent-violet-400 cursor-pointer">
+          <button id="eraser-zoom-in" class="eraser-tool-btn" style="padding:4px 8px;font-size:14px;line-height:1;">&#43;</button>
+          <span class="text-[10px] text-slate-300 font-bold w-9 text-center" id="eraser-zoom-label">100%</span>
+          <button id="eraser-zoom-reset" class="eraser-tool-btn" style="padding:4px 8px;font-size:10px;">🔄</button>
+        </div>
+
+        <!-- ml-auto spacer + Save/Cancel -->
+        <div class="ml-auto flex items-center gap-2">
+          <button id="eraser-btn-cancel" class="eraser-cancel-btn">Відмінити</button>
+          <button id="eraser-btn-save"   class="eraser-save-btn">✅ Зберегти</button>
+        </div>
       </div>
-      <!-- Canvas area -->
-      <div class="eraser-canvas-wrap">
-        <canvas id="eraser-canvas"></canvas>
+
+      <!-- Canvas viewport -->
+      <div class="eraser-canvas-wrap" id="eraser-canvas-wrap">
+        <div class="eraser-viewport" id="eraser-viewport">
+          <div class="eraser-stage" id="eraser-stage">
+            <!-- sizer — задаёт внешние размеры stage -->
+            <canvas id="eraser-canvas-sizer" style="max-width:min(100%,900px);max-height:65vh;"></canvas>
+            <!-- Фон-слой -->
+            <canvas id="eraser-bg-canvas"></canvas>
+            <!-- Слой объекта (редактируемый) -->
+            <canvas id="eraser-canvas"></canvas>
+          </div>
+        </div>
       </div>
+
     </div>
   </div>
 
