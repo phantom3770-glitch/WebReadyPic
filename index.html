@@ -363,6 +363,51 @@
       transition: width 0.1s, height 0.1s;
       display: none;
     }
+    .eraser-stamp-marker {
+      position: absolute; pointer-events: none; z-index: 10;
+      width: 24px; height: 24px; border: 1.5px dashed #00F2FE;
+      border-radius: 50%; transform: translate(-50%, -50%);
+      box-shadow: 0 0 6px rgba(0, 0, 0, 0.8), inset 0 0 6px rgba(0, 0, 0, 0.8);
+      display: none;
+    }
+    .eraser-stamp-marker::before, .eraser-stamp-marker::after {
+      content: ''; position: absolute; background: #00F2FE;
+    }
+    .eraser-stamp-marker::before {
+      top: 50%; left: -5px; right: -5px; height: 1.5px; transform: translateY(-50%);
+    }
+    .eraser-stamp-marker::after {
+      left: 50%; top: -5px; bottom: -5px; width: 1.5px; transform: translateX(-50%);
+    }
+    .eraser-transform-box {
+      position: absolute; pointer-events: none; z-index: 15;
+      border: 1.5px dashed #00F2FE;
+      box-shadow: 0 0 8px rgba(0, 242, 254, 0.4);
+      display: none;
+    }
+    .transform-rot-stem {
+      position: absolute; top: -18px; left: 50%; width: 1.5px; height: 18px;
+      background: #00F2FE; transform: translateX(-50%); pointer-events: none;
+    }
+    .transform-handle {
+      position: absolute; width: 12px; height: 12px;
+      background: #00F2FE; border: 2px solid #030712;
+      border-radius: 50%; pointer-events: auto; cursor: pointer;
+      box-shadow: 0 0 6px rgba(0, 242, 254, 0.8);
+      transition: transform 0.15s;
+    }
+    .transform-handle:hover { transform: scale(1.3); }
+    .transform-handle.rot {
+      top: -26px; left: 50%; transform: translateX(-50%);
+      background: #38BDF8; border-color: #030712;
+      cursor: grab;
+    }
+    .transform-handle.rot:hover { transform: translateX(-50%) scale(1.3); }
+    .transform-handle.rot:active { cursor: grabbing; }
+    .transform-handle.tl { top: -6px; left: -6px; cursor: nwse-resize; }
+    .transform-handle.tr { top: -6px; right: -6px; cursor: nesw-resize; }
+    .transform-handle.bl { bottom: -6px; left: -6px; cursor: nesw-resize; }
+    .transform-handle.br { bottom: -6px; right: -6px; cursor: nwse-resize; }
     .eraser-tool-btn {
       padding: 6px 14px; border-radius: 8px; font-size: 11px; font-weight: 700;
       border: 1px solid rgba(255,255,255,0.1); cursor: pointer; transition: all 0.2s;
@@ -766,7 +811,14 @@
       eraserCancel:     'Відмінити',
       eraserBrush:      '🖌 Пензель',
       eraserErase:      '🧹 Ластик',
-      eraserPan:        '✋ Панорама',
+      eraserPan:            '✋ Панорама',
+      eraserStamp:          '🎯 Штамп',
+      eraserStampHint:      'Затисніть Alt + Клік, щоб обрати ділянку для копіювання, потім зафарбовуйте потрібну зону',
+      eraserTransform:      '📐 Розмір і позиція',
+      eraserTransformHint:  'Перетягуйте об’єкт мишею для зсуву, тягніть за кутові маркери для зміни розміру або за верхній маркер для повороту',
+      eraserResetPos:       '🎯 Центрувати',
+      eraserUndo:       '↩️ Відмінити',
+      eraserRedo:       '↪️ Повторити',
       eraserSizeLabel:  'Розмір',
       eraserSaved:      'Зміни збережено!',
       background:       'Фон',
@@ -842,7 +894,14 @@
       eraserCancel:     'Отмена',
       eraserBrush:      '🖌 Кисть',
       eraserErase:      '🧹 Ластик',
-      eraserPan:        '✋ Панорама',
+      eraserPan:            '✋ Панорама',
+      eraserStamp:          '🎯 Штамп',
+      eraserStampHint:      'Зажмите Alt + Клик, чтобы выбрать область для копирования, затем закрашивайте нужный участок',
+      eraserTransform:      '📐 Размер и позиция',
+      eraserTransformHint:  'Перетаскивайте объект мышью для сдвига, тяните за угловые маркеры для изменения размера или за верхний маркер для поворота',
+      eraserResetPos:       '🎯 Центрировать',
+      eraserUndo:       '↩️ Отменить',
+      eraserRedo:       '↪️ Повторить',
       eraserSizeLabel:  'Размер',
       eraserSaved:      'Изменения сохранены!',
       background:       'Фон',
@@ -918,7 +977,14 @@
       eraserCancel:     'Cancel',
       eraserBrush:      '🖌 Brush',
       eraserErase:      '🧹 Eraser',
-      eraserPan:        '✋ Pan',
+      eraserPan:            '✋ Pan',
+      eraserStamp:          '🎯 Stamp',
+      eraserStampHint:      'Hold Alt + Click to select sample point, then paint over target area',
+      eraserTransform:      '📐 Size & Position',
+      eraserTransformHint:  'Drag object to move, pull corner handles to resize, or pull the top handle to rotate',
+      eraserResetPos:       '🎯 Center Object',
+      eraserUndo:       '↩️ Undo',
+      eraserRedo:       '↪️ Redo',
       eraserSizeLabel:  'Size',
       eraserSaved:      'Changes saved!',
       background:       'Background',
@@ -1968,25 +2034,25 @@
         + '</div>'
         + '</div>';
     }
-    
+
     // Генерация SEO через Gemini API
     async generateSEO(id, platform) {
       var entry = this._files.get(id);
       if (!entry || !entry.resultBlob || entry.seoLoading) return;
-      
+
       entry.seoLoading = true;
       this._refreshCard(id);
-      
+
       try {
         var reader = new FileReader();
         var base64 = await new Promise((resolve) => {
           reader.onload = () => resolve(reader.result.split(',')[1]);
           reader.readAsDataURL(entry.resultBlob);
         });
-        
+
         var langName = { ua: 'українською мовою', ru: 'на русском языке', en: 'in English language' }[this._lang] || 'українською мовою';
         var pName = { prom: 'Prom.ua', olx: 'OLX / Rozetka', insta: 'Instagram / Соцсети' }[platform] || 'маркетплейса';
-        
+
         var promptText = `Сгенерируй SEO-карточку для этого товара ${langName}. Площадка: ${pName}. 
 Верни строго валидный JSON без markdown-оберток (без \`\`\`json), со следующими полями:
 {
@@ -2004,7 +2070,7 @@
             mimeType: entry.finalFormat === 'png' ? 'image/png' : 'image/jpeg'
           })
         });
-        
+
         var data = await response.json();
         if (response.ok && data.candidates && data.candidates[0]) {
           let text = data.candidates[0].content.parts[0].text;
@@ -2031,14 +2097,14 @@
     openSeoModal(id) {
       var entry = this._files.get(id);
       if (!entry || !entry.seoData) return;
-      
+
       var d = entry.seoData;
       document.getElementById('seo-modal-title').textContent = d.title || '';
-      
+
       var descHtml = this._esc(d.description || '')
           .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
           .replace(/\*(.*?)\*/g, '<em>$1</em>');
-          
+
       var lines = descHtml.split('\n');
       var html = '';
       var inList = false;
@@ -2055,14 +2121,14 @@
       if (inList) html += '</ul>';
       html = html.replace(/(<br\/>)+/g, '<br/>').replace(/<br\/>$/, '');
       document.getElementById('seo-modal-desc').innerHTML = html;
-      
+
       var tagsRaw = d.tags || '';
       var tagsArr = tagsRaw.split(',').map(function(t) { return t.trim().replace(/^#/, ''); }).filter(Boolean);
       document.getElementById('seo-modal-tags').setAttribute('data-raw', tagsArr.join(', '));
       document.getElementById('seo-modal-tags').innerHTML = tagsArr.map(function(t) {
          return '<span class="seo-tag">#' + t + '</span>';
       }).join('');
-      
+
       document.getElementById('seo-modal-wrap').classList.add('open');
     }
 
@@ -2078,7 +2144,7 @@
       } else {
          text = el.textContent.trim();
       }
-      
+
       if (text) {
          navigator.clipboard.writeText(text);
          this._toast(TRANSLATIONS[this._lang].toastCopied, 'success');
@@ -2096,8 +2162,6 @@
       var ring       = document.getElementById('eraser-cursor-ring');
       var canvasWrap = document.getElementById('eraser-canvas-wrap');
       var stage      = document.getElementById('eraser-stage');
-
-      // ── Параметры кисти и зума ──
       var tool     = 'erase';
       var brushSz  = 28;
       var painting = false;
@@ -2105,23 +2169,116 @@
       var fitZoom  = 0.3;
       var panX = 0, panY = 0;
       var panning = false, panStartX = 0, panStartY = 0, panOriginX = 0, panOriginY = 0;
+      var isSpacePressed = false;
+      var lastPos = null;
+
+      // ── История изменений (Undo / Redo) ──
+      var undoStack = [];
+      var redoStack = [];
+      var MAX_HISTORY = 15;
+      var hadPainted = false;
+
+      // ── Параметры штампа ──
+      var samplePoint       = null;
+      var strokeStartPos    = null;
+      var strokeSampleStart = null;
+      var stampSourceCanvas = null;
+
+      // ── Параметры трансформации объекта ──
+      var objOffsetX = 0, objOffsetY = 0, objScale = 1.0, rotationAngle = 0;
+      var objInitialBBox = null;
+      var objectSourceCanvas = null;
+      var transformMode = null; // 'drag' | 'scale' | 'rotate'
+      var activeHandle = null;
+      var dragStartMouse = null;
+      var startOffsetX = 0, startOffsetY = 0, startScale = 1.0;
+      var startMouseAngle = 0, startRotationAngle = 0;
 
       // ── Обновляем i18n кнопок ──
-      var elTitle  = document.getElementById('eraser-modal-title');
-      var elSave   = document.getElementById('eraser-btn-save');
-      var elCancel = document.getElementById('eraser-btn-cancel');
-      var elErase  = document.getElementById('eraser-btn-erase');
-      var elRest   = document.getElementById('eraser-btn-restore');
-      var elPan    = document.getElementById('eraser-btn-pan');
-      var elSzLbl  = document.getElementById('eraser-size-title');
+      var elTitle       = document.getElementById('eraser-modal-title');
+      var elSave        = document.getElementById('eraser-btn-save');
+      var elCancel      = document.getElementById('eraser-btn-cancel');
+      var elErase       = document.getElementById('eraser-btn-erase');
+      var elRest        = document.getElementById('eraser-btn-restore');
+      var elPan         = document.getElementById('eraser-btn-pan');
+      var elStamp       = document.getElementById('eraser-btn-stamp');
+      var elTransform   = document.getElementById('eraser-btn-transform');
+      var elResetPos    = document.getElementById('eraser-btn-reset-transform');
+      var elUndo        = document.getElementById('eraser-btn-undo');
+      var elRedo        = document.getElementById('eraser-btn-redo');
+      var elSzLbl       = document.getElementById('eraser-size-title');
+      var elHint        = document.getElementById('eraser-hint-bar');
+      var elHintText    = document.getElementById('eraser-hint-text');
+      var stampMarker   = document.getElementById('eraser-stamp-marker');
+      var tBox          = document.getElementById('eraser-transform-box');
 
-      if (elTitle)  elTitle.textContent  = t.eraserTitle;
-      if (elSave)   elSave.textContent   = t.eraserSave;
-      if (elCancel) elCancel.textContent = t.eraserCancel;
-      if (elErase)  elErase.textContent  = t.eraserErase;
-      if (elRest)   elRest.textContent   = t.eraserBrush;
-      if (elPan)    elPan.textContent    = t.eraserPan || '✋ Панорама';
-      if (elSzLbl)  elSzLbl.textContent  = t.eraserSizeLabel || 'Размер';
+      if (elTitle)     elTitle.textContent     = t.eraserTitle;
+      if (elSave)      elSave.textContent      = t.eraserSave;
+      if (elCancel)    elCancel.textContent    = t.eraserCancel;
+      if (elErase)     elErase.textContent     = t.eraserErase;
+      if (elRest)      elRest.textContent      = t.eraserBrush;
+      if (elPan)       elPan.textContent       = t.eraserPan || '✋ Панорама';
+      if (elStamp)     elStamp.textContent     = t.eraserStamp || '🎯 Штамп';
+      if (elTransform) elTransform.textContent = t.eraserTransform || '📐 Размер и позиция';
+      if (elResetPos)  elResetPos.textContent  = t.eraserResetPos || '🎯 Центрировать';
+      if (elUndo)      elUndo.textContent      = t.eraserUndo || '↩️ Отменить';
+      if (elRedo)      elRedo.textContent      = t.eraserRedo || '↪️ Повторить';
+      if (elSzLbl)     elSzLbl.textContent     = t.eraserSizeLabel || 'Размер';
+
+      function updateUndoRedoButtons() {
+        if (elUndo) {
+          var canUndo = undoStack.length > 1;
+          elUndo.disabled = !canUndo;
+          elUndo.style.opacity = canUndo ? '1' : '0.4';
+          elUndo.style.cursor  = canUndo ? 'pointer' : 'not-allowed';
+        }
+        if (elRedo) {
+          var canRedo = redoStack.length > 0;
+          elRedo.disabled = !canRedo;
+          elRedo.style.opacity = canRedo ? '1' : '0.4';
+          elRedo.style.cursor  = canRedo ? 'pointer' : 'not-allowed';
+        }
+      }
+
+      function saveState() {
+        if (!ctx || !ec || ec.width === 0 || ec.height === 0) return;
+        var imgData = ctx.getImageData(0, 0, ec.width, ec.height);
+        undoStack.push(imgData);
+        if (undoStack.length > MAX_HISTORY) {
+          undoStack.shift();
+        }
+        updateUndoRedoButtons();
+      }
+
+      function undo() {
+        if (undoStack.length <= 1) return;
+        var current = undoStack.pop();
+        redoStack.push(current);
+        var prev = undoStack[undoStack.length - 1];
+        ctx.putImageData(prev, 0, 0);
+        if (objectSourceCanvas) {
+          objectSourceCanvas.getContext('2d').clearRect(0, 0, ec.width, ec.height);
+          objectSourceCanvas.getContext('2d').drawImage(ec, 0, 0);
+        }
+        renderTransformedObject();
+        updateUndoRedoButtons();
+      }
+
+      function redo() {
+        if (redoStack.length === 0) return;
+        var state = redoStack.pop();
+        undoStack.push(state);
+        ctx.putImageData(state, 0, 0);
+        if (objectSourceCanvas) {
+          objectSourceCanvas.getContext('2d').clearRect(0, 0, ec.width, ec.height);
+          objectSourceCanvas.getContext('2d').drawImage(ec, 0, 0);
+        }
+        renderTransformedObject();
+        updateUndoRedoButtons();
+      }
+
+      if (elUndo) elUndo.onclick = function() { undo(); };
+      if (elRedo) elRedo.onclick = function() { redo(); };
 
       // ── Ползунок размера кисти ──
       var sizeSlider = document.getElementById('eraser-size-slider');
@@ -2209,7 +2366,96 @@
         panX = 0; panY = 0;
         applyTransform();
 
-        // ── Фон-подложка (нижний слой — не редактируется) ──
+        // ── Объект на верхнем слое ──
+        ctx.drawImage(origImg, 0, 0);
+        URL.revokeObjectURL(blobUrl);
+
+        // Клонируем исходник для трансформации
+        objectSourceCanvas = document.createElement('canvas');
+        objectSourceCanvas.width  = W;
+        objectSourceCanvas.height = H;
+        objectSourceCanvas.getContext('2d').drawImage(ec, 0, 0);
+
+        // Сканируем границы объекта (alpha > 20)
+        var imgData = ctx.getImageData(0, 0, W, H).data;
+        var minX = W, minY = H, maxX = 0, maxY = 0;
+        for (var i = 0; i < W * H; i++) {
+          if (imgData[i * 4 + 3] > 20) {
+            var px = i % W;
+            var py = Math.floor(i / W);
+            if (px < minX) minX = px;
+            if (px > maxX) maxX = px;
+            if (py < minY) minY = py;
+            if (py > maxY) maxY = py;
+          }
+        }
+        if (maxX >= minX && maxY >= minY) {
+          objInitialBBox = {
+            minX: minX, minY: minY, maxX: maxX, maxY: maxY,
+            w: maxX - minX, h: maxY - minY,
+            cx: (minX + maxX) / 2, cy: (minY + maxY) / 2
+          };
+        } else {
+          objInitialBBox = { minX: 0, minY: 0, maxX: W, maxY: H, w: W, h: H, cx: W/2, cy: H/2 };
+        }
+
+        objOffsetX = 0; objOffsetY = 0; objScale = 1.0; rotationAngle = 0;
+        renderTransformedObject();
+
+        // Начальный снимок состояния для истории Undo
+        saveState();
+      };
+      origImg.src = blobUrl;
+
+      // ── Рендеринг трансформированного и повёрнутого объекта и динамической тени (rAF Optimized) ──
+      var renderRafPending = false;
+      function renderTransformedObject() {
+        if (renderRafPending) return;
+        renderRafPending = true;
+        requestAnimationFrame(function() {
+          renderRafPending = false;
+          _drawTransformedFrame();
+        });
+      }
+
+      function _drawTransformedFrame() {
+        if (!objectSourceCanvas || !objInitialBBox || !ec || ec.width === 0) return;
+        var W = ec.width, H = ec.height;
+
+        var centerX = objInitialBBox.cx + objOffsetX;
+        var centerY = objInitialBBox.cy + objOffsetY;
+
+        ctx.clearRect(0, 0, W, H);
+        ctx.save();
+        ctx.translate(centerX, centerY);
+        ctx.rotate(rotationAngle);
+        ctx.scale(objScale, objScale);
+        ctx.translate(-objInitialBBox.cx, -objInitialBBox.cy);
+        ctx.drawImage(objectSourceCanvas, 0, 0);
+        ctx.restore();
+
+        var curW = objInitialBBox.w * objScale;
+        var curH = objInitialBBox.h * objScale;
+        var left = centerX - curW / 2;
+        var top  = centerY - curH / 2;
+
+        if (tBox) {
+          tBox.style.left   = left + 'px';
+          tBox.style.top    = top + 'px';
+          tBox.style.width  = curW + 'px';
+          tBox.style.height = curH + 'px';
+          tBox.style.transformOrigin = 'center center';
+          tBox.style.transform = 'rotate(' + rotationAngle + 'rad)';
+          tBox.style.display = (tool === 'transform') ? 'block' : 'none';
+        }
+
+        renderBgAndShadow(centerX, centerY, curW, curH);
+      }
+
+      function renderBgAndShadow(centerX, centerY, curW, curH) {
+        var W = bgEc.width, H = bgEc.height;
+        bgCtx.clearRect(0, 0, W, H);
+
         var bg = self._cfg ? self._cfg.background : 'white';
         if (bg === 'white') {
           bgCtx.fillStyle = '#FFFFFF'; bgCtx.fillRect(0, 0, W, H);
@@ -2226,83 +2472,662 @@
         } else if (bg && bg.startsWith('#')) {
           bgCtx.fillStyle = bg; bgCtx.fillRect(0, 0, W, H);
         }
-        // transparent: bgEc пуст — шахматка видна через CSS на wrap
 
-        // ── Объект на верхнем слое ──
-        ctx.drawImage(origImg, 0, 0);
-        URL.revokeObjectURL(blobUrl);
-      };
-      origImg.src = blobUrl;
+        if (self._cfg && self._cfg.shadow && centerX !== undefined) {
+          var footCX = centerX - (curH / 2) * Math.sin(rotationAngle);
+          var footCY = centerY + (curH / 2) * Math.cos(rotationAngle);
+          var footW  = curW * 0.55;
+          var ambW   = curW * 0.65;
+
+          bgCtx.save();
+          bgCtx.translate(footCX, footCY);
+          bgCtx.rotate(rotationAngle);
+
+          // Ambient Shadow
+          bgCtx.filter = 'blur(' + Math.max(4, Math.round(12 * objScale)) + 'px)';
+          var ambGrad = bgCtx.createRadialGradient(0, 14 * objScale, 0, 0, 14 * objScale, ambW);
+          ambGrad.addColorStop(0,   'rgba(0,0,0,0.22)');
+          ambGrad.addColorStop(0.5, 'rgba(0,0,0,0.10)');
+          ambGrad.addColorStop(1,   'rgba(0,0,0,0)');
+          bgCtx.fillStyle = ambGrad;
+          bgCtx.beginPath();
+          bgCtx.ellipse(0, 14 * objScale, ambW, ambW * 0.22, 0, 0, Math.PI * 2);
+          bgCtx.fill();
+
+          // Contact Shadow
+          bgCtx.filter = 'blur(' + Math.max(1, Math.round(3 * objScale)) + 'px)';
+          var contactGrad = bgCtx.createRadialGradient(0, 2 * objScale, 0, 0, 2 * objScale, footW);
+          contactGrad.addColorStop(0,    'rgba(0,0,0,0.48)');
+          contactGrad.addColorStop(0.55, 'rgba(0,0,0,0.18)');
+          contactGrad.addColorStop(1,    'rgba(0,0,0,0)');
+          bgCtx.fillStyle = contactGrad;
+          bgCtx.beginPath();
+          bgCtx.ellipse(0, 2 * objScale, footW, footW * 0.12, 0, 0, Math.PI * 2);
+          bgCtx.fill();
+
+          bgCtx.filter = 'none';
+          bgCtx.restore();
+        }
+      }
+
+      // ── Математическое определение зон клика по маркерам (Hit Testing) ──
+      function getRotatedHandlePos(localX, localY, centerX, centerY, rot) {
+        var rx = localX * Math.cos(rot) - localY * Math.sin(rot);
+        var ry = localX * Math.sin(rot) + localY * Math.cos(rot);
+        return {
+          x: centerX + rx,
+          y: centerY + ry
+        };
+      }
+
+      function getHandlesInfo(cpos) {
+        if (!objInitialBBox) return { hit: null, centerX: cpos ? cpos.x : 0, centerY: cpos ? cpos.y : 0 };
+
+        var centerX = objInitialBBox.cx + objOffsetX;
+        var centerY = objInitialBBox.cy + objOffsetY;
+        var hw = (objInitialBBox.w * objScale) / 2;
+        var hh = (objInitialBBox.h * objScale) / 2;
+        var rot = rotationAngle;
+
+        var handles = {
+          rot: getRotatedHandlePos(0, -hh - 24, centerX, centerY, rot),
+          tl:  getRotatedHandlePos(-hw, -hh, centerX, centerY, rot),
+          tr:  getRotatedHandlePos(hw, -hh, centerX, centerY, rot),
+          bl:  getRotatedHandlePos(-hw, hh, centerX, centerY, rot),
+          br:  getRotatedHandlePos(hw, hh, centerX, centerY, rot),
+        };
+
+        // Радиус попадания по маркерам (не менее 18px с учетом масштаба зума)
+        var hitR = Math.max(18, 22 / zoom);
+
+        for (var name in handles) {
+          var h = handles[name];
+          var d = Math.hypot(cpos.x - h.x, cpos.y - h.y);
+          if (d <= hitR) {
+            return { hit: name, pos: h, centerX: centerX, centerY: centerY };
+          }
+        }
+
+        // Проверка клика внутри рамки объекта
+        var dx = cpos.x - centerX;
+        var dy = cpos.y - centerY;
+        var locX = dx * Math.cos(-rot) - dy * Math.sin(-rot);
+        var locY = dx * Math.sin(-rot) + dy * Math.cos(-rot);
+
+        if (Math.abs(locX) <= hw + 10 && Math.abs(locY) <= hh + 10) {
+          return { hit: 'drag', centerX: centerX, centerY: centerY };
+        }
+
+        return { hit: null, centerX: centerX, centerY: centerY };
+      }
 
       // ── Инструменты ──
+      function isPanMode() {
+        return tool === 'pan' || isSpacePressed;
+      }
+
+      function updateCursorStyle(cpos) {
+        if (isPanMode()) {
+          canvasWrap.style.cursor = panning ? 'grabbing' : 'grab';
+          if (ec) ec.style.cursor = panning ? 'grabbing' : 'grab';
+          if (ring) ring.style.display = 'none';
+        } else if (tool === 'transform') {
+          var cur = 'move';
+          if (transformMode === 'drag') {
+            cur = 'grabbing';
+          } else if (transformMode === 'scale') {
+            cur = 'nwse-resize';
+          } else if (transformMode === 'rotate') {
+            cur = 'grabbing';
+          } else if (cpos) {
+            var info = getHandlesInfo(cpos);
+            if (info.hit === 'rot') cur = 'grab';
+            else if (info.hit === 'tl' || info.hit === 'br') cur = 'nwse-resize';
+            else if (info.hit === 'tr' || info.hit === 'bl') cur = 'nesw-resize';
+            else if (info.hit === 'drag') cur = 'move';
+            else cur = 'default';
+          }
+          canvasWrap.style.cursor = cur;
+          if (ec) ec.style.cursor = cur;
+          if (ring) ring.style.display = 'none';
+        } else {
+          canvasWrap.style.cursor = 'crosshair';
+          if (ec) ec.style.cursor = 'crosshair';
+        }
+      }
+
       function setTool(toolName) {
         tool = toolName;
-        if (elErase) elErase.classList.toggle('active', toolName === 'erase');
-        if (elRest)  elRest.classList.toggle('active', toolName === 'restore');
-        if (elPan)   elPan.classList.toggle('active', toolName === 'pan');
-        canvasWrap.style.cursor = (toolName === 'pan') ? 'grab' : 'none';
+        panning = false;
+        painting = false;
+        transformMode = null;
+        lastPos = null;
+        if (elErase)     elErase.classList.toggle('active', toolName === 'erase');
+        if (elRest)      elRest.classList.toggle('active', toolName === 'restore');
+        if (elStamp)     elStamp.classList.toggle('active', toolName === 'stamp');
+        if (elTransform) elTransform.classList.toggle('active', toolName === 'transform');
+        if (elPan)       elPan.classList.toggle('active', toolName === 'pan');
+
+        if (elResetPos) {
+          elResetPos.classList.toggle('hidden', toolName !== 'transform');
+        }
+        if (elHint) {
+          elHint.classList.toggle('hidden', toolName !== 'stamp' && toolName !== 'transform');
+          if (toolName === 'stamp') {
+            if (elHintText) elHintText.textContent = t.eraserStampHint || 'Зажмите Alt + Клик, чтобы выбрать область для копирования, затем закрашивайте нужный участок';
+          } else if (toolName === 'transform') {
+            if (elHintText) elHintText.textContent = t.eraserTransformHint || 'Перетаскивайте объект мышью для сдвига, тяните за угловые маркеры для изменения размера или за верхний маркер для поворота';
+          }
+        }
+        if (stampMarker) {
+          stampMarker.style.display = (toolName === 'stamp' && samplePoint) ? 'block' : 'none';
+        }
+        if (tBox) {
+          tBox.style.display = (toolName === 'transform') ? 'block' : 'none';
+        }
+
+        updateCursorStyle();
       }
       setTool('erase');
-      if (elErase) elErase.onclick = function() { setTool('erase'); };
-      if (elRest)  elRest.onclick  = function() { setTool('restore'); };
-      if (elPan)   elPan.onclick   = function() { setTool('pan'); };
+      if (elErase)     elErase.onclick     = function() { setTool('erase'); };
+      if (elRest)      elRest.onclick      = function() { setTool('restore'); };
+      if (elStamp)     elStamp.onclick     = function() { setTool('stamp'); };
+      if (elTransform) elTransform.onclick = function() { setTool('transform'); };
+      if (elPan)       elPan.onclick       = function() { setTool('pan'); };
+
+      if (elResetPos) {
+        elResetPos.onclick = function() {
+          objOffsetX = 0;
+          objOffsetY = 0;
+          objScale = 1.0;
+          rotationAngle = 0;
+          renderTransformedObject();
+          saveState();
+        };
+      }
 
       function getCanvasPos(e) {
         var rect = ec.getBoundingClientRect();
-        var cx = e.touches ? e.touches[0].clientX : e.clientX;
-        var cy = e.touches ? e.touches[0].clientY : e.clientY;
-        return { x: (cx - rect.left) * (ec.width / rect.width), y: (cy - rect.top) * (ec.height / rect.height) };
+        var touch = (e.touches && e.touches[0]) || (e.changedTouches && e.changedTouches[0]);
+        var cx = touch ? touch.clientX : e.clientX;
+        var cy = touch ? touch.clientY : e.clientY;
+        return {
+          x: (cx - rect.left) * (ec.width / rect.width),
+          y: (cy - rect.top) * (ec.height / rect.height)
+        };
       }
+
       function getClientPos(e) {
-        return { x: e.touches ? e.touches[0].clientX : e.clientX, y: e.touches ? e.touches[0].clientY : e.clientY };
+        var touch = (e.touches && e.touches[0]) || (e.changedTouches && e.changedTouches[0]);
+        return {
+          x: touch ? touch.clientX : e.clientX,
+          y: touch ? touch.clientY : e.clientY
+        };
       }
 
       function updateRing(e) {
-        if (tool === 'pan') { ring.style.display = 'none'; return; }
-        var cp = getClientPos(e); var sz = brushSz * zoom;
-        ring.style.display = 'block'; ring.style.left = cp.x + 'px'; ring.style.top = cp.y + 'px';
-        ring.style.width = sz + 'px'; ring.style.height = sz + 'px';
+        if (!ring) return;
+        if (isPanMode() || tool === 'transform') {
+          ring.style.display = 'none';
+          return;
+        }
+        var cp = getClientPos(e);
+        var sz = brushSz * zoom;
+        ring.style.display = 'block';
+        ring.style.left = cp.x + 'px';
+        ring.style.top = cp.y + 'px';
+        ring.style.width = sz + 'px';
+        ring.style.height = sz + 'px';
+      }
+
+      function paintPoint(pos) {
+        var r = brushSz / 2;
+        if (tool === 'erase') {
+          ctx.globalCompositeOperation = 'destination-out';
+          ctx.beginPath();
+          ctx.arc(pos.x, pos.y, r, 0, Math.PI * 2);
+          ctx.fillStyle = 'rgba(0,0,0,1)';
+          ctx.fill();
+          ctx.globalCompositeOperation = 'source-over';
+        } else if (tool === 'restore') {
+          ctx.save();
+          ctx.globalCompositeOperation = 'source-over';
+          ctx.beginPath();
+          ctx.arc(pos.x, pos.y, r, 0, Math.PI * 2);
+          ctx.clip();
+          ctx.drawImage(origImg, 0, 0);
+          ctx.restore();
+        } else if (tool === 'stamp') {
+          if (!stampSourceCanvas || !strokeStartPos || !strokeSampleStart) return;
+          var offsetX = pos.x - strokeStartPos.x;
+          var offsetY = pos.y - strokeStartPos.y;
+          var srcX = strokeSampleStart.x + offsetX;
+          var srcY = strokeSampleStart.y + offsetY;
+
+          if (stampMarker) {
+            stampMarker.style.left = srcX + 'px';
+            stampMarker.style.top  = srcY + 'px';
+          }
+
+          ctx.save();
+          ctx.globalCompositeOperation = 'source-over';
+          ctx.beginPath();
+          ctx.arc(pos.x, pos.y, r, 0, Math.PI * 2);
+          ctx.clip();
+          ctx.drawImage(stampSourceCanvas, pos.x - srcX, pos.y - srcY);
+          ctx.restore();
+        }
+      }
+
+      function drawStroke(p1, p2) {
+        var dist = Math.hypot(p2.x - p1.x, p2.y - p1.y);
+        var step = Math.max(1, brushSz / 4);
+        for (var d = 0; d <= dist; d += step) {
+          var t = dist === 0 ? 0 : d / dist;
+          var x = p1.x + (p2.x - p1.x) * t;
+          var y = p1.y + (p2.y - p1.y) * t;
+          paintPoint({ x: x, y: y });
+        }
       }
 
       function doPaint(e) {
-        if (!painting || tool === 'pan') return;
+        if (!painting || isPanMode() || tool === 'transform') return;
         var pos = getCanvasPos(e);
-        var r   = brushSz / 2;
-        if (tool === 'erase') {
-          ctx.globalCompositeOperation = 'destination-out';
-          ctx.beginPath(); ctx.arc(pos.x, pos.y, r, 0, Math.PI * 2);
-          ctx.fillStyle = 'rgba(0,0,0,1)'; ctx.fill();
-          ctx.globalCompositeOperation = 'source-over';
-        } else if (tool === 'restore') {
-          ctx.save(); ctx.globalCompositeOperation = 'source-over';
-          ctx.beginPath(); ctx.arc(pos.x, pos.y, r, 0, Math.PI * 2); ctx.clip();
-          ctx.drawImage(origImg, 0, 0); ctx.restore();
+        if (lastPos) {
+          drawStroke(lastPos, pos);
+        } else {
+          paintPoint(pos);
+        }
+        lastPos = pos;
+        hadPainted = true;
+      }
+
+      function finishPainting() {
+        if (painting) {
+          painting = false;
+          if (hadPainted) {
+            if (objectSourceCanvas) {
+              objectSourceCanvas.getContext('2d').clearRect(0, 0, ec.width, ec.height);
+              objectSourceCanvas.getContext('2d').drawImage(ec, 0, 0);
+            }
+            saveState();
+            redoStack = [];
+            hadPainted = false;
+            updateUndoRedoButtons();
+          }
+        }
+        if (tool === 'stamp' && samplePoint && stampMarker) {
+          stampMarker.style.left = samplePoint.x + 'px';
+          stampMarker.style.top  = samplePoint.y + 'px';
         }
       }
 
       function startPan(e) {
-        panning = true; var cp = getClientPos(e);
-        panStartX = cp.x; panStartY = cp.y; panOriginX = panX; panOriginY = panY;
-        canvasWrap.style.cursor = 'grabbing';
+        panning = true;
+        painting = false;
+        lastPos = null;
+        var cp = getClientPos(e);
+        panStartX = cp.x;
+        panStartY = cp.y;
+        panOriginX = panX;
+        panOriginY = panY;
+        updateCursorStyle();
       }
+
       function doPan(e) {
-        if (!panning) return; var cp = getClientPos(e);
-        panX = panOriginX + (cp.x - panStartX); panY = panOriginY + (cp.y - panStartY);
+        if (!panning) return;
+        var cp = getClientPos(e);
+        panX = panOriginX + (cp.x - panStartX);
+        panY = panOriginY + (cp.y - panStartY);
         applyTransform();
       }
-      function stopPan() { panning = false; if (tool === 'pan') canvasWrap.style.cursor = 'grab'; }
 
-      function onWheel(e) { e.preventDefault(); setZoom(zoom + (e.deltaY < 0 ? 0.10 : -0.10)); }
+      function stopPan() {
+        panning = false;
+        updateCursorStyle();
+      }
 
-      canvasWrap.addEventListener('mousedown',  function(e) { if (tool === 'pan') startPan(e); else { painting = true; doPaint(e); } });
-      canvasWrap.addEventListener('mouseup',    function()  { painting = false; stopPan(); });
-      canvasWrap.addEventListener('mouseleave', function()  { painting = false; stopPan(); ring.style.display = 'none'; });
-      canvasWrap.addEventListener('mouseenter', function(e) { updateRing(e); });
-      canvasWrap.addEventListener('mousemove',  function(e) { updateRing(e); doPan(e); doPaint(e); });
-      canvasWrap.addEventListener('wheel',      onWheel, { passive: false });
-      canvasWrap.addEventListener('touchstart', function(e) { e.preventDefault(); if (tool === 'pan') startPan(e); else { painting = true; doPaint(e); } }, { passive: false });
-      canvasWrap.addEventListener('touchend',   function()  { painting = false; stopPan(); });
-      canvasWrap.addEventListener('touchmove',  function(e) { e.preventDefault(); updateRing(e); if (tool === 'pan') doPan(e); else doPaint(e); }, { passive: false });
+      function onWheel(e) {
+        e.preventDefault();
+        setZoom(zoom + (e.deltaY < 0 ? 0.10 : -0.10));
+      }
+
+      canvasWrap.addEventListener('mousedown', function(e) {
+        e.preventDefault();
+        e.stopPropagation();
+        if (isPanMode()) {
+          painting = false;
+          startPan(e);
+        } else if (tool === 'transform') {
+          panning = false;
+          painting = false;
+          var cpos = getCanvasPos(e);
+          var info = getHandlesInfo(cpos);
+          var handleEl = e.target.closest('[data-handle]');
+          var hitType = info.hit || (handleEl ? handleEl.getAttribute('data-handle') : null);
+
+          if (hitType === 'rot') {
+            transformMode = 'rotate';
+            startMouseAngle = Math.atan2(cpos.y - info.centerY, cpos.x - info.centerX);
+            startRotationAngle = rotationAngle;
+          } else if (hitType === 'tl' || hitType === 'tr' || hitType === 'bl' || hitType === 'br') {
+            transformMode = 'scale';
+            activeHandle = hitType;
+            dragStartMouse = cpos;
+            startScale = objScale;
+            startOffsetX = objOffsetX;
+            startOffsetY = objOffsetY;
+          } else {
+            transformMode = 'drag';
+            dragStartMouse = cpos;
+            startOffsetX = objOffsetX;
+            startOffsetY = objOffsetY;
+          }
+          updateCursorStyle(cpos);
+        } else if (tool === 'stamp') {
+          panning = false;
+          var cpos = getCanvasPos(e);
+          if (e.altKey || !samplePoint) {
+            samplePoint = cpos;
+            if (stampMarker) {
+              stampMarker.style.display = 'block';
+              stampMarker.style.left = samplePoint.x + 'px';
+              stampMarker.style.top  = samplePoint.y + 'px';
+            }
+            painting = false;
+            return;
+          }
+          strokeStartPos = cpos;
+          strokeSampleStart = { x: samplePoint.x, y: samplePoint.y };
+          stampSourceCanvas = document.createElement('canvas');
+          stampSourceCanvas.width = ec.width;
+          stampSourceCanvas.height = ec.height;
+          stampSourceCanvas.getContext('2d').drawImage(ec, 0, 0);
+
+          painting = true;
+          hadPainted = false;
+          lastPos = cpos;
+          doPaint(e);
+        } else {
+          panning = false;
+          painting = true;
+          hadPainted = false;
+          lastPos = getCanvasPos(e);
+          doPaint(e);
+        }
+      });
+
+      canvasWrap.addEventListener('mouseup', function(e) {
+        if (tool === 'transform' && transformMode) {
+          transformMode = null;
+          updateCursorStyle();
+          saveState();
+        }
+        finishPainting();
+        stopPan();
+      });
+
+      canvasWrap.addEventListener('mouseleave', function(e) {
+        if (tool === 'transform' && transformMode) {
+          transformMode = null;
+          updateCursorStyle();
+        }
+        finishPainting();
+        stopPan();
+        if (ring) ring.style.display = 'none';
+      });
+
+      canvasWrap.addEventListener('mouseenter', function(e) {
+        updateRing(e);
+        updateCursorStyle();
+      });
+
+      canvasWrap.addEventListener('mousemove', function(e) {
+        var cpos = getCanvasPos(e);
+        updateRing(e);
+        if (isPanMode()) {
+          if (panning) {
+            e.preventDefault();
+            e.stopPropagation();
+            doPan(e);
+          }
+        } else if (tool === 'transform') {
+          if (transformMode === 'rotate') {
+            e.preventDefault(); e.stopPropagation();
+            if (objInitialBBox) {
+              var centerX = objInitialBBox.cx + objOffsetX;
+              var centerY = objInitialBBox.cy + objOffsetY;
+              var curMouseAngle = Math.atan2(cpos.y - centerY, cpos.x - centerX);
+              rotationAngle = startRotationAngle + (curMouseAngle - startMouseAngle);
+              renderTransformedObject();
+            }
+          } else if (transformMode === 'drag') {
+            e.preventDefault(); e.stopPropagation();
+            objOffsetX = startOffsetX + (cpos.x - dragStartMouse.x);
+            objOffsetY = startOffsetY + (cpos.y - dragStartMouse.y);
+            renderTransformedObject();
+          } else if (transformMode === 'scale') {
+            e.preventDefault(); e.stopPropagation();
+            if (objInitialBBox) {
+              var centerX = objInitialBBox.cx + startOffsetX;
+              var centerY = objInitialBBox.cy + startOffsetY;
+              var distNew   = Math.hypot(cpos.x - centerX, cpos.y - centerY);
+              var distStart = Math.hypot(dragStartMouse.x - centerX, dragStartMouse.y - centerY);
+              if (distStart > 5) {
+                objScale = Math.max(0.15, Math.min(3.0, startScale * (distNew / distStart)));
+                renderTransformedObject();
+              }
+            }
+          } else {
+            updateCursorStyle(cpos);
+          }
+        } else {
+          if (painting) {
+            e.preventDefault();
+            e.stopPropagation();
+            panning = false;
+            doPaint(e);
+          }
+        }
+      });
+
+      canvasWrap.addEventListener('wheel', onWheel, { passive: false });
+
+      canvasWrap.addEventListener('touchstart', function(e) {
+        e.preventDefault();
+        e.stopPropagation();
+        if (isPanMode()) {
+          painting = false;
+          startPan(e);
+        } else if (tool === 'transform') {
+          panning = false;
+          painting = false;
+          var cpos = getCanvasPos(e);
+          var info = getHandlesInfo(cpos);
+          var handleEl = e.target.closest('[data-handle]');
+          var hitType = info.hit || (handleEl ? handleEl.getAttribute('data-handle') : null);
+
+          if (hitType === 'rot') {
+            transformMode = 'rotate';
+            startMouseAngle = Math.atan2(cpos.y - info.centerY, cpos.x - info.centerX);
+            startRotationAngle = rotationAngle;
+          } else if (hitType === 'tl' || hitType === 'tr' || hitType === 'bl' || hitType === 'br') {
+            transformMode = 'scale';
+            activeHandle = hitType;
+            dragStartMouse = cpos;
+            startScale = objScale;
+            startOffsetX = objOffsetX;
+            startOffsetY = objOffsetY;
+          } else {
+            transformMode = 'drag';
+            dragStartMouse = cpos;
+            startOffsetX = objOffsetX;
+            startOffsetY = objOffsetY;
+          }
+          updateCursorStyle(cpos);
+        } else if (tool === 'stamp') {
+          panning = false;
+          var cpos = getCanvasPos(e);
+          if (!samplePoint) {
+            samplePoint = cpos;
+            if (stampMarker) {
+              stampMarker.style.display = 'block';
+              stampMarker.style.left = samplePoint.x + 'px';
+              stampMarker.style.top  = samplePoint.y + 'px';
+            }
+            painting = false;
+            return;
+          }
+          strokeStartPos = cpos;
+          strokeSampleStart = { x: samplePoint.x, y: samplePoint.y };
+          stampSourceCanvas = document.createElement('canvas');
+          stampSourceCanvas.width = ec.width;
+          stampSourceCanvas.height = ec.height;
+          stampSourceCanvas.getContext('2d').drawImage(ec, 0, 0);
+
+          painting = true;
+          hadPainted = false;
+          lastPos = cpos;
+          doPaint(e);
+        } else {
+          panning = false;
+          painting = true;
+          hadPainted = false;
+          lastPos = getCanvasPos(e);
+          doPaint(e);
+        }
+      }, { passive: false });
+
+      canvasWrap.addEventListener('touchend', function(e) {
+        if (tool === 'transform' && transformMode) {
+          transformMode = null;
+          updateCursorStyle();
+          saveState();
+        }
+        finishPainting();
+        stopPan();
+      });
+
+      canvasWrap.addEventListener('touchmove', function(e) {
+        e.preventDefault();
+        e.stopPropagation();
+        updateRing(e);
+        if (isPanMode()) {
+          if (panning) doPan(e);
+        } else if (tool === 'transform') {
+          if (transformMode === 'rotate') {
+            var cpos = getCanvasPos(e);
+            if (objInitialBBox) {
+              var centerX = objInitialBBox.cx + objOffsetX;
+              var centerY = objInitialBBox.cy + objOffsetY;
+              var curMouseAngle = Math.atan2(cpos.y - centerY, cpos.x - centerX);
+              rotationAngle = startRotationAngle + (curMouseAngle - startMouseAngle);
+              renderTransformedObject();
+            }
+          } else if (transformMode === 'drag') {
+            var cpos = getCanvasPos(e);
+            objOffsetX = startOffsetX + (cpos.x - dragStartMouse.x);
+            objOffsetY = startOffsetY + (cpos.y - dragStartMouse.y);
+            renderTransformedObject();
+          } else if (transformMode === 'scale') {
+            var cpos = getCanvasPos(e);
+            if (objInitialBBox) {
+              var centerX = objInitialBBox.cx + startOffsetX;
+              var centerY = objInitialBBox.cy + startOffsetY;
+              var distNew   = Math.hypot(cpos.x - centerX, cpos.y - centerY);
+              var distStart = Math.hypot(dragStartMouse.x - centerX, dragStartMouse.y - centerY);
+              if (distStart > 5) {
+                objScale = Math.max(0.15, Math.min(3.0, startScale * (distNew / distStart)));
+                renderTransformedObject();
+              }
+            }
+          }
+        } else {
+          if (painting) {
+            panning = false;
+            doPaint(e);
+          }
+        }
+      }, { passive: false });
+
+      function onKeyDown(e) {
+        if (!wrap.classList.contains('open')) return;
+
+        if (e.ctrlKey || e.metaKey) {
+          var key = e.key ? e.key.toLowerCase() : '';
+          if (key === 'z') {
+            e.preventDefault();
+            if (e.shiftKey) {
+              redo();
+            } else {
+              undo();
+            }
+            return;
+          } else if (key === 'y') {
+            e.preventDefault();
+            redo();
+            return;
+          }
+        }
+
+        if (e.code === 'Space' || e.key === ' ') {
+          if (!e.repeat) {
+            e.preventDefault();
+            isSpacePressed = true;
+            updateCursorStyle();
+          }
+        } else if (e.key === 'Escape') {
+          closeModal();
+        }
+      }
+
+      function onKeyUp(e) {
+        if (!wrap.classList.contains('open')) return;
+        if (e.code === 'Space' || e.key === ' ') {
+          e.preventDefault();
+          isSpacePressed = false;
+          if (panning) stopPan();
+          updateCursorStyle();
+        }
+      }
+
+      function closeModal() {
+        wrap.classList.remove('open');
+        if (ring) ring.style.display = 'none';
+        if (stampMarker) stampMarker.style.display = 'none';
+        if (tBox) tBox.style.display = 'none';
+
+        // Освобождаем память: сбрасываем ссылки и очищаем Canvas
+        samplePoint = null;
+        strokeStartPos = null;
+        strokeSampleStart = null;
+        transformMode = null;
+        dragStartMouse = null;
+        objInitialBBox = null;
+
+        if (stampSourceCanvas) {
+          stampSourceCanvas.width = 0; stampSourceCanvas.height = 0;
+          stampSourceCanvas = null;
+        }
+        if (objectSourceCanvas) {
+          objectSourceCanvas.width = 0; objectSourceCanvas.height = 0;
+          objectSourceCanvas = null;
+        }
+
+        if (ctx)   { ctx.clearRect(0, 0, ec.width, ec.height); }
+        if (bgCtx) { bgCtx.clearRect(0, 0, bgEc.width, bgEc.height); }
+        if (ec)    { ec.width = 0; ec.height = 0; }
+        if (bgEc)  { bgEc.width = 0; bgEc.height = 0; }
+
+        undoStack = [];
+        redoStack = [];
+
+        window.removeEventListener('keydown', onKeyDown);
+        window.removeEventListener('keyup', onKeyUp);
+      }
+
+      window.addEventListener('keydown', onKeyDown);
+      window.addEventListener('keyup', onKeyUp);
 
       // ── Сохранить — объединяем нижний (фон) и верхний (объект) слои при экспорте ──
       document.getElementById('eraser-btn-save').onclick = function() {
@@ -2321,13 +3146,13 @@
           entry.resultBlob = blob;
           entry.thumbUrl   = URL.createObjectURL(blob);
           self._refreshCard(id);
-          wrap.classList.remove('open'); ring.style.display = 'none';
+          closeModal();
           self._toast(t.eraserSaved, 'success');
         }, 'image/png');
       };
 
       document.getElementById('eraser-btn-cancel').onclick = function() {
-        wrap.classList.remove('open'); ring.style.display = 'none';
+        closeModal();
       };
 
       wrap.classList.add('open');
@@ -2430,9 +3255,24 @@
         <div class="w-px h-5 bg-white/10"></div>
 
         <!-- Tool buttons -->
-        <button id="eraser-btn-erase"   class="eraser-tool-btn active" data-i18n="eraserErase">🧹 Ластик</button>
-        <button id="eraser-btn-restore" class="eraser-tool-btn" data-i18n="eraserBrush">🖌 Кисть</button>
-        <button id="eraser-btn-pan"     class="eraser-tool-btn" data-i18n="eraserPan">✋ Панорама</button>
+        <button id="eraser-btn-erase"     class="eraser-tool-btn active" data-i18n="eraserErase">🧹 Ластик</button>
+        <button id="eraser-btn-restore"   class="eraser-tool-btn" data-i18n="eraserBrush">🖌 Кисть</button>
+        <button id="eraser-btn-stamp"     class="eraser-tool-btn" data-i18n="eraserStamp">🎯 Штамп</button>
+        <button id="eraser-btn-transform" class="eraser-tool-btn" data-i18n="eraserTransform">📐 Размер и позиция</button>
+        <button id="eraser-btn-pan"       class="eraser-tool-btn" data-i18n="eraserPan">✋ Панорама</button>
+
+        <!-- Separator -->
+        <div class="w-px h-5 bg-white/10"></div>
+
+        <!-- Reset transform button -->
+        <button id="eraser-btn-reset-transform" class="eraser-tool-btn hidden" data-i18n="eraserResetPos" title="Сбросить позицию и 100% масштаб">🎯 Центрировать</button>
+
+        <!-- Separator -->
+        <div class="w-px h-5 bg-white/10"></div>
+
+        <!-- Undo / Redo buttons -->
+        <button id="eraser-btn-undo" class="eraser-tool-btn" data-i18n="eraserUndo" title="Отменить (Ctrl+Z)" disabled>↩️ Отменить</button>
+        <button id="eraser-btn-redo" class="eraser-tool-btn" data-i18n="eraserRedo" title="Повторить (Ctrl+Y)" disabled>↪️ Повторить</button>
 
         <!-- Separator -->
         <div class="w-px h-5 bg-white/10"></div>
@@ -2465,6 +3305,12 @@
         </div>
       </div>
 
+      <!-- Hint Bar for Clone Stamp Tool -->
+      <div id="eraser-hint-bar" class="hidden text-xs font-semibold text-cyan-300 bg-cyan-950/70 border-b border-cyan-500/20 px-5 py-2 flex items-center justify-center gap-2">
+        <span class="text-sm">🎯</span>
+        <span id="eraser-hint-text" data-i18n="eraserStampHint">Зажмите Alt + Клик, чтобы выбрать область для копирования, затем закрашивайте нужный участок</span>
+      </div>
+
       <!-- Canvas viewport -->
       <div class="eraser-canvas-wrap" id="eraser-canvas-wrap">
         <div class="eraser-viewport" id="eraser-viewport">
@@ -2475,6 +3321,17 @@
             <canvas id="eraser-bg-canvas"></canvas>
             <!-- Слой объекта (редактируемый) -->
             <canvas id="eraser-canvas"></canvas>
+            <!-- Маркер-прицел для инструмента Штамп -->
+            <div id="eraser-stamp-marker" class="eraser-stamp-marker"></div>
+            <!-- Рамка трансформации с маркерами -->
+            <div id="eraser-transform-box" class="eraser-transform-box">
+              <div class="transform-rot-stem"></div>
+              <div class="transform-handle rot" data-handle="rot" title="Повернуть"></div>
+              <div class="transform-handle tl" data-handle="tl"></div>
+              <div class="transform-handle tr" data-handle="tr"></div>
+              <div class="transform-handle bl" data-handle="bl"></div>
+              <div class="transform-handle br" data-handle="br"></div>
+            </div>
           </div>
         </div>
       </div>
