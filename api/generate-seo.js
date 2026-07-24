@@ -55,7 +55,7 @@ module.exports = async function handler(req, res) {
       body: JSON.stringify(payload)
     });
 
-    if (!response.ok && (response.status === 404 || response.status === 400)) {
+    if (!response.ok) {
       const fallbackResponse = await fetch(fallbackUrl, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
