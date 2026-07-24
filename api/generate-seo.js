@@ -48,14 +48,15 @@ module.exports = async function handler(req, res) {
       ]
     };
 
-    const models = ['gemini-2.0-flash', 'gemini-1.5-flash-latest', 'gemini-1.5-flash-8b-latest'];
+    const models = ['gemini-2.0-flash', 'gemini-1.5-flash'];
     let successData = null;
     let lastErrorStatus = null;
     let lastErrorMessage = '';
     let allErrorsAreQuota = true;
 
-    for (const model of models) {
-      const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
+    for (const MODEL_NAME of models) {
+      console.log('Sending request to Gemini model:', MODEL_NAME);
+      const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/${MODEL_NAME}:generateContent?key=${apiKey}`;
       try {
         const response = await fetch(apiUrl, {
           method: 'POST',
