@@ -2761,7 +2761,8 @@ Return strictly valid JSON without markdown formatting (no \`\`\`json wrappers),
           body: JSON.stringify({
             prompt: promptText,
             image: base64,
-            mimeType: mimeType
+            mimeType: mimeType,
+            lang: this._lang
           })
         });
 

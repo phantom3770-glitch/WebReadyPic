@@ -53,6 +53,7 @@ exports.handler = async (event) => {
     const promptText = body.prompt || body.promptText;
     const base64Image = body.image || body.imageBase64;
     const mimeType = body.mimeType || 'image/jpeg';
+    const lang = body.lang || 'ru';
 
     if (!promptText) {
       return {
@@ -76,49 +77,62 @@ exports.handler = async (event) => {
       ]
     };
 
-    const primaryUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`;
-    const fallbackUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`;
+    const models = ['gemini-2.0-flash', 'gemini-1.5-flash', 'gemini-1.5-flash-8b'];
+    let successData = null;
+    let lastErrorDetails = null;
 
-    let response = await fetch(primaryUrl, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(payload)
-    });
+    for (const model of models) {
+      const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
+      try {
+        const response = await fetch(apiUrl, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        });
 
-    if (!response.ok) {
-      const fallbackResponse = await fetch(fallbackUrl, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload)
-      });
-      if (fallbackResponse.ok) {
-        response = fallbackResponse;
+        const data = await response.json();
+
+        if (response.ok && data.candidates && data.candidates[0]) {
+          successData = data;
+          break; // Успешно сгенерировано текущей моделью
+        }
+
+        lastErrorDetails = data;
+      } catch (err) {
+        lastErrorDetails = { error: { message: err.message } };
       }
     }
 
-    const data = await response.json();
-
-    if (!response.ok) {
+    if (successData) {
       return {
-        statusCode: response.status,
+        statusCode: 200,
         headers: {
           'Access-Control-Allow-Origin': '*',
           'Content-Type': 'application/json'
         },
-        body: JSON.stringify({
-          error: data.error?.message || `Ошибка Gemini API (${response.status})`,
-          details: data
-        })
+        body: JSON.stringify(successData)
       };
     }
 
+    // Человекочитаемые ошибки при исчерпании лимитов всех моделей
+    const friendlyErrorMessages = {
+      ru: 'Лимит бесплатных запросов ИИ временно исчерпан. Пожалуйста, подождите 1 минуту и попробуйте снова.',
+      ua: 'Ліміт безкоштовних запитів ШІ тимчасово вичерпано. Будь ласка, зачекайте 1 хвилину та спробуйте знову.',
+      en: 'AI free request limit temporarily reached. Please wait 1 minute and try again.'
+    };
+
+    const userFriendlyMsg = friendlyErrorMessages[lang] || friendlyErrorMessages.ru;
+
     return {
-      statusCode: 200,
+      statusCode: 429,
       headers: {
         'Access-Control-Allow-Origin': '*',
         'Content-Type': 'application/json'
       },
-      body: JSON.stringify(data)
+      body: JSON.stringify({
+        error: userFriendlyMsg,
+        details: lastErrorDetails
+      })
     };
 
   } catch (error) {
