@@ -865,6 +865,18 @@
 
                 </div>
               </div>
+
+              <!-- Gemini API Key Section for AI-SEO -->
+              <div class="pt-4 border-t border-white/5">
+                <div class="flex items-center gap-2 mb-2">
+                  <svg class="w-4 h-4 text-cyan-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 0121 9z" />
+                  </svg>
+                  <span data-i18n="apiKeyLabel" class="text-xs font-bold text-slate-200 tracking-wide">Gemini API Ключ (для ИИ-SEO)</span>
+                </div>
+                <input type="password" id="gemini-api-key-input" placeholder="AIzaSy..." class="w-full px-3 py-1.5 text-xs bg-slate-900/80 border border-slate-700/80 rounded-lg text-slate-200 focus:outline-none focus:border-cyan-400 transition" />
+              </div>
+
             </div>
           </div>
         </div>
@@ -1132,6 +1144,10 @@
       cardRemove:       'Видалити',
       cardDownload:     'Завантажити',
       seoError:         'Помилка генерації SEO',
+      apiKeyLabel:      'Gemini API Ключ (для ШІ-SEO)',
+      apiKeyPlaceholder:'Введіть ваш API ключ...',
+      apiKeyRequired:   'Укажіть Gemini API Key в налаштуваннях',
+      apiKeyPrompt:     'Укажіть ваш Gemini API Key для ШІ-SEO:',
     },
     ru: {
       tagline:          'Минуты вместо часов: идеальные карточки товаров в одном месте',
@@ -1255,6 +1271,10 @@
       cardRemove:       'Удалить',
       cardDownload:     'Скачать',
       seoError:         'Ошибка генерации SEO',
+      apiKeyLabel:      'Gemini API Ключ (для ИИ-SEO)',
+      apiKeyPlaceholder:'Введите ваш API ключ...',
+      apiKeyRequired:   'Укажите Gemini API Key в настройках',
+      apiKeyPrompt:     'Укажите ваш Gemini API Key для ИИ-SEO:',
     },
     en: {
       tagline:          'Minutes Instead of Hours: Perfect Product Cards All in One Place',
@@ -1378,6 +1398,10 @@
       cardRemove:       'Remove',
       cardDownload:     'Download',
       seoError:         'SEO generation failed',
+      apiKeyLabel:      'Gemini API Key (for AI-SEO)',
+      apiKeyPlaceholder:'Enter your API key...',
+      apiKeyRequired:   'Please specify Gemini API Key in settings',
+      apiKeyPrompt:     'Enter your Gemini API Key for AI SEO:',
     },
   };
 
@@ -2024,6 +2048,7 @@
       this.collapseAntiBanBranding = document.getElementById('antiban-branding-collapse');
       this.bgLabel    = document.getElementById('bg-label');
       this.fmtHint    = document.getElementById('format-hint');
+      this.apiKeyInput = document.getElementById('gemini-api-key-input');
     }
 
     // Привязка всех событий через делегирование
@@ -2200,6 +2225,15 @@
           opacityTimer = setTimeout(function() {
             self._cfg.wmOpacity = val / 100;
           }, 120);
+        });
+      }
+
+      // ── API Key Input handling ──
+      if (this.apiKeyInput) {
+        var savedKey = localStorage.getItem('webreadypic_gemini_api_key') || '';
+        this.apiKeyInput.value = savedKey;
+        this.apiKeyInput.addEventListener('input', function() {
+          localStorage.setItem('webreadypic_gemini_api_key', self.apiKeyInput.value.trim());
         });
       }
 
@@ -2699,10 +2733,28 @@
         + '</div>';
     }
 
-    // Генерация SEO через Gemini API
+    // Генерация SEO через Gemini REST API
     async generateSEO(id, platform) {
       var entry = this._files.get(id);
       if (!entry || !entry.resultBlob || entry.seoLoading) return;
+
+      var t = TRANSLATIONS[this._lang] || TRANSLATIONS.ru;
+      var apiKey = (this.apiKeyInput ? this.apiKeyInput.value.trim() : '') || localStorage.getItem('webreadypic_gemini_api_key') || window.GEMINI_API_KEY || '';
+
+      if (!apiKey) {
+        var userKey = prompt(t.apiKeyPrompt || 'Укажите Gemini API Key для ИИ-SEO:');
+        if (userKey && userKey.trim()) {
+          apiKey = userKey.trim();
+          localStorage.setItem('webreadypic_gemini_api_key', apiKey);
+          if (this.apiKeyInput) this.apiKeyInput.value = apiKey;
+        }
+      }
+
+      if (!apiKey) {
+        this._toast(t.apiKeyRequired || 'Укажите Gemini API Key в настройках', 'warning');
+        if (this.apiKeyInput) this.apiKeyInput.focus();
+        return;
+      }
 
       entry.seoLoading = true;
       this._refreshCard(id);
@@ -2739,18 +2791,37 @@ Return strictly valid JSON without markdown formatting (no \`\`\`json wrappers),
   "tags": "10-15 ключевых SEO-тегов через запятую"
 }`;
 
-        var response = await fetch('/api/gemini', {
+        var mimeType = entry.finalFormat === 'png' ? 'image/png' : 'image/jpeg';
+        var apiUrl = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=' + encodeURIComponent(apiKey);
+
+        var response = await fetch(apiUrl, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
-            prompt: promptText,
-            image: base64,
-            mimeType: entry.finalFormat === 'png' ? 'image/png' : 'image/jpeg'
+            contents: [
+              {
+                parts: [
+                  { text: promptText },
+                  {
+                    inlineData: {
+                      mimeType: mimeType,
+                      data: base64
+                    }
+                  }
+                ]
+              }
+            ]
           })
         });
 
+        var contentType = response.headers.get("content-type");
+        if (!response.ok || !contentType || !contentType.includes("application/json")) {
+          var errorText = await response.text();
+          throw new Error(`Ошибка сервера (${response.status}): проверьте API ключ или подключение.`);
+        }
+
         var data = await response.json();
-        if (response.ok && data.candidates && data.candidates[0]) {
+        if (data.candidates && data.candidates[0] && data.candidates[0].content && data.candidates[0].content.parts && data.candidates[0].content.parts[0]) {
           let text = data.candidates[0].content.parts[0].text;
           text = text.replace(/```json/gi, '').replace(/```/g, '').trim();
           try {
@@ -2760,12 +2831,14 @@ Return strictly valid JSON without markdown formatting (no \`\`\`json wrappers),
             entry.seoData = { title: "Generation Error", description: text, tags: "" };
           }
           this.openSeoModal(id);
+        } else if (data.error) {
+          throw new Error(data.error.message || ('Ошибка API (' + response.status + ')'));
         } else {
-          throw new Error(data.error || 'Ошибка API');
+          throw new Error('Пустой ответ от Gemini API');
         }
       } catch (e) {
         console.error('[WebReadyPic] SEO Generation error', e);
-        var errPrefix = (TRANSLATIONS[this._lang] && TRANSLATIONS[this._lang].seoError) || 'SEO generation failed';
+        var errPrefix = (t && t.seoError) || 'SEO generation failed';
         this._toast(errPrefix + ': ' + e.message, 'error');
       } finally {
         entry.seoLoading = false;
