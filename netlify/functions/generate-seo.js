@@ -32,7 +32,7 @@ exports.handler = async (event) => {
           'Access-Control-Allow-Origin': '*',
           'Content-Type': 'application/json'
         },
-        body: JSON.stringify({ error: 'Переменная окружения GEMINI_API_KEY не настроена на сервере Netlify.' })
+        body: JSON.stringify({ error: 'GEMINI_API_KEY не задан в Environment Variables проекта' })
       };
     }
 
@@ -51,7 +51,8 @@ exports.handler = async (event) => {
     }
 
     const promptText = body.prompt || body.promptText;
-    const base64Image = body.image || body.imageBase64;
+    const rawBase64 = body.image || body.imageBase64;
+    const cleanBase64 = rawBase64 ? rawBase64.replace(/^data:image\/\w+;base64,/, '') : null;
     const mimeType = body.mimeType || 'image/jpeg';
     const lang = body.lang || 'ru';
 
@@ -71,7 +72,7 @@ exports.handler = async (event) => {
         {
           parts: [
             { text: promptText },
-            ...(base64Image ? [{ inlineData: { mimeType: mimeType, data: base64Image } }] : [])
+            ...(cleanBase64 ? [{ inlineData: { mimeType: mimeType, data: cleanBase64 } }] : [])
           ]
         }
       ]
@@ -79,7 +80,9 @@ exports.handler = async (event) => {
 
     const models = ['gemini-2.0-flash', 'gemini-1.5-flash', 'gemini-1.5-flash-8b'];
     let successData = null;
-    let lastErrorDetails = null;
+    let lastErrorStatus = null;
+    let lastErrorMessage = '';
+    let allErrorsAreQuota = true;
 
     for (const model of models) {
       const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
@@ -90,16 +93,28 @@ exports.handler = async (event) => {
           body: JSON.stringify(payload)
         });
 
-        const data = await response.json();
+        const errorData = await response.json().catch(() => ({}));
+        const status = response.status;
+        const message = errorData.error?.message || response.statusText || '';
 
-        if (response.ok && data.candidates && data.candidates[0]) {
-          successData = data;
-          break; // Успешно сгенерировано текущей моделью
+        if (response.ok && errorData.candidates && errorData.candidates[0]) {
+          successData = errorData;
+          break;
         }
 
-        lastErrorDetails = data;
+        lastErrorStatus = status;
+        lastErrorMessage = message;
+
+        const isQuotaError = (status === 429) || (message && (message.includes('Quota exceeded') || message.includes('RESOURCE_EXHAUSTED')));
+        if (!isQuotaError) {
+          allErrorsAreQuota = false;
+          break;
+        }
       } catch (err) {
-        lastErrorDetails = { error: { message: err.message } };
+        lastErrorStatus = 500;
+        lastErrorMessage = err.message;
+        allErrorsAreQuota = false;
+        break;
       }
     }
 
@@ -114,25 +129,30 @@ exports.handler = async (event) => {
       };
     }
 
-    // Человекочитаемые ошибки при исчерпании лимитов всех моделей
-    const friendlyErrorMessages = {
-      ru: 'Лимит бесплатных запросов ИИ временно исчерпан. Пожалуйста, подождите 1 минуту и попробуйте снова.',
-      ua: 'Ліміт безкоштовних запитів ШІ тимчасово вичерпано. Будь ласка, зачекайте 1 хвилину та спробуйте знову.',
-      en: 'AI free request limit temporarily reached. Please wait 1 minute and try again.'
-    };
-
-    const userFriendlyMsg = friendlyErrorMessages[lang] || friendlyErrorMessages.ru;
+    if (allErrorsAreQuota) {
+      const friendlyErrorMessages = {
+        ru: 'Лимит бесплатных запросов ИИ временно исчерпан. Пожалуйста, подождите 1 минуту и попробуйте снова.',
+        ua: 'Ліміт безкоштовних запитів ШІ тимчасово вичерпано. Будь ласка, зачекайте 1 хвилину та спробуйте знову.',
+        en: 'AI free request limit temporarily reached. Please wait 1 minute and try again.'
+      };
+      const userFriendlyMsg = friendlyErrorMessages[lang] || friendlyErrorMessages.ru;
+      return {
+        statusCode: 429,
+        headers: {
+          'Access-Control-Allow-Origin': '*',
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ error: userFriendlyMsg })
+      };
+    }
 
     return {
-      statusCode: 429,
+      statusCode: lastErrorStatus || 500,
       headers: {
         'Access-Control-Allow-Origin': '*',
         'Content-Type': 'application/json'
       },
-      body: JSON.stringify({
-        error: userFriendlyMsg,
-        details: lastErrorDetails
-      })
+      body: JSON.stringify({ error: `Ошибка API (${lastErrorStatus || 500}): ${lastErrorMessage || 'Неизвестная ошибка'}` })
     };
 
   } catch (error) {

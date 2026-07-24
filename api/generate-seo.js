@@ -14,7 +14,7 @@ module.exports = async function handler(req, res) {
 
   const apiKey = process.env.GEMINI_API_KEY;
   if (!apiKey) {
-    return res.status(500).json({ error: 'Переменная окружения GEMINI_API_KEY не задана на сервере.' });
+    return res.status(500).json({ error: 'GEMINI_API_KEY не задан в Environment Variables проекта' });
   }
 
   try {
@@ -28,7 +28,8 @@ module.exports = async function handler(req, res) {
     }
 
     const promptText = (body && (body.prompt || body.promptText)) || '';
-    const base64Image = body && (body.image || body.imageBase64);
+    const rawBase64 = body && (body.image || body.imageBase64);
+    const cleanBase64 = rawBase64 ? rawBase64.replace(/^data:image\/\w+;base64,/, '') : null;
     const mimeType = (body && body.mimeType) || 'image/jpeg';
     const lang = (body && body.lang) || 'ru';
 
@@ -41,7 +42,7 @@ module.exports = async function handler(req, res) {
         {
           parts: [
             { text: promptText },
-            ...(base64Image ? [{ inlineData: { mimeType: mimeType, data: base64Image } }] : [])
+            ...(cleanBase64 ? [{ inlineData: { mimeType: mimeType, data: cleanBase64 } }] : [])
           ]
         }
       ]
@@ -49,7 +50,9 @@ module.exports = async function handler(req, res) {
 
     const models = ['gemini-2.0-flash', 'gemini-1.5-flash', 'gemini-1.5-flash-8b'];
     let successData = null;
-    let lastErrorDetails = null;
+    let lastErrorStatus = null;
+    let lastErrorMessage = '';
+    let allErrorsAreQuota = true;
 
     for (const model of models) {
       const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
@@ -60,16 +63,28 @@ module.exports = async function handler(req, res) {
           body: JSON.stringify(payload)
         });
 
-        const data = await response.json();
+        const errorData = await response.json().catch(() => ({}));
+        const status = response.status;
+        const message = errorData.error?.message || response.statusText || '';
 
-        if (response.ok && data.candidates && data.candidates[0]) {
-          successData = data;
-          break; // Успешно сгенерировано текущей моделью
+        if (response.ok && errorData.candidates && errorData.candidates[0]) {
+          successData = errorData;
+          break;
         }
 
-        lastErrorDetails = data;
+        lastErrorStatus = status;
+        lastErrorMessage = message;
+
+        const isQuotaError = (status === 429) || (message && (message.includes('Quota exceeded') || message.includes('RESOURCE_EXHAUSTED')));
+        if (!isQuotaError) {
+          allErrorsAreQuota = false;
+          break;
+        }
       } catch (err) {
-        lastErrorDetails = { error: { message: err.message } };
+        lastErrorStatus = 500;
+        lastErrorMessage = err.message;
+        allErrorsAreQuota = false;
+        break;
       }
     }
 
@@ -77,18 +92,18 @@ module.exports = async function handler(req, res) {
       return res.status(200).json(successData);
     }
 
-    // Человекочитаемые ошибки при исчерпании лимитов всех моделей
-    const friendlyErrorMessages = {
-      ru: 'Лимит бесплатных запросов ИИ временно исчерпан. Пожалуйста, подождите 1 минуту и попробуйте снова.',
-      ua: 'Ліміт безкоштовних запитів ШІ тимчасово вичерпано. Будь ласка, зачекайте 1 хвилину та спробуйте знову.',
-      en: 'AI free request limit temporarily reached. Please wait 1 minute and try again.'
-    };
+    if (allErrorsAreQuota) {
+      const friendlyErrorMessages = {
+        ru: 'Лимит бесплатных запросов ИИ временно исчерпан. Пожалуйста, подождите 1 минуту и попробуйте снова.',
+        ua: 'Ліміт безкоштовних запитів ШІ тимчасово вичерпано. Будь ласка, зачекайте 1 хвилину та спробуйте знову.',
+        en: 'AI free request limit temporarily reached. Please wait 1 minute and try again.'
+      };
+      const userFriendlyMsg = friendlyErrorMessages[lang] || friendlyErrorMessages.ru;
+      return res.status(429).json({ error: userFriendlyMsg });
+    }
 
-    const userFriendlyMsg = friendlyErrorMessages[lang] || friendlyErrorMessages.ru;
-
-    return res.status(429).json({
-      error: userFriendlyMsg,
-      details: lastErrorDetails
+    return res.status(lastErrorStatus || 500).json({
+      error: `Ошибка API (${lastErrorStatus || 500}): ${lastErrorMessage || 'Неизвестная ошибка'}`
     });
 
   } catch (error) {
