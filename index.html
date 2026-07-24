@@ -2755,7 +2755,7 @@ Return strictly valid JSON without markdown formatting (no \`\`\`json wrappers),
 
         var mimeType = entry.finalFormat === 'png' ? 'image/png' : 'image/jpeg';
         
-        var response = await fetch('/.netlify/functions/generate-seo', {
+        var response = await fetch('/api/generate-seo', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
