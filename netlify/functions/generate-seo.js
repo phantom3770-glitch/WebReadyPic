@@ -78,7 +78,7 @@ exports.handler = async (event) => {
       ]
     };
 
-    const models = ['gemini-2.0-flash', 'gemini-1.5-flash', 'gemini-1.5-flash-8b'];
+    const models = ['gemini-2.0-flash', 'gemini-1.5-flash-latest', 'gemini-1.5-flash-8b-latest'];
     let successData = null;
     let lastErrorStatus = null;
     let lastErrorMessage = '';
