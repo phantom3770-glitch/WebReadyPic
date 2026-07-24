@@ -48,14 +48,18 @@ module.exports = async function handler(req, res) {
       ]
     };
 
-    const models = ['gemini-2.0-flash', 'gemini-1.5-flash'];
+    const models = [
+      'gemini-2.0-flash',
+      'gemini-1.5-flash-latest',
+      'gemini-1.5-flash-8b-latest'
+    ];
+
     let successData = null;
     let lastErrorStatus = null;
     let lastErrorMessage = '';
-    let allErrorsAreQuota = true;
+    let hasQuotaError = false;
 
     for (const MODEL_NAME of models) {
-      console.log('Sending request to Gemini model:', MODEL_NAME);
       const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/${MODEL_NAME}:generateContent?key=${apiKey}`;
       try {
         const response = await fetch(apiUrl, {
@@ -76,16 +80,17 @@ module.exports = async function handler(req, res) {
         lastErrorStatus = status;
         lastErrorMessage = message;
 
-        const isQuotaError = (status === 429) || (message && (message.includes('Quota exceeded') || message.includes('RESOURCE_EXHAUSTED')));
-        if (!isQuotaError) {
-          allErrorsAreQuota = false;
+        const isQuota = (status === 429) || (message && (message.includes('Quota exceeded') || message.includes('RESOURCE_EXHAUSTED')));
+        if (isQuota) {
+          hasQuotaError = true;
+        }
+
+        if (status === 401) {
           break;
         }
       } catch (err) {
         lastErrorStatus = 500;
         lastErrorMessage = err.message;
-        allErrorsAreQuota = false;
-        break;
       }
     }
 
@@ -93,7 +98,7 @@ module.exports = async function handler(req, res) {
       return res.status(200).json(successData);
     }
 
-    if (allErrorsAreQuota) {
+    if (hasQuotaError) {
       const friendlyErrorMessages = {
         ru: 'Лимит бесплатных запросов ИИ временно исчерпан. Пожалуйста, подождите 1 минуту и попробуйте снова.',
         ua: 'Ліміт безкоштовних запитів ШІ тимчасово вичерпано. Будь ласка, зачекайте 1 хвилину та спробуйте знову.',
