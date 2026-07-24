@@ -49,9 +49,10 @@ module.exports = async function handler(req, res) {
     };
 
     const models = [
+      'gemini-flash-latest',
       'gemini-2.0-flash',
-      'gemini-1.5-flash-latest',
-      'gemini-1.5-flash-8b-latest'
+      'gemini-flash-lite-latest',
+      'gemini-2.0-flash-lite'
     ];
 
     let successData = null;
