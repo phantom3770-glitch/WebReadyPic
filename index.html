@@ -2754,28 +2754,79 @@ Return strictly valid JSON without markdown formatting (no \`\`\`json wrappers),
 }`;
 
         var mimeType = entry.finalFormat === 'png' ? 'image/png' : 'image/jpeg';
-        
-        var response = await fetch('/api/generate-seo', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            prompt: promptText,
-            image: base64,
-            mimeType: mimeType,
-            lang: this._lang
-          })
-        });
+        var data;
 
-        var contentType = response.headers.get("content-type");
-        if (!response.ok || !contentType || !contentType.includes("application/json")) {
-          var errorText = await response.text();
-          var errObj;
-          try { errObj = JSON.parse(errorText); } catch(e) {}
-          var errMessage = (errObj && errObj.error) ? errObj.error : `Ошибка сервера (${response.status}): ${errorText.slice(0, 100)}`;
-          throw new Error(errMessage);
+        var isLocalDev = location.hostname === 'localhost' || location.hostname === '127.0.0.1' || location.protocol === 'file:';
+
+        if (isLocalDev) {
+          // Локальный режим (localhost): прямой запрос с использованием ключа из localStorage/prompt
+          var localKey = localStorage.getItem('webreadypic_gemini_api_key') || window.GEMINI_API_KEY || '';
+          if (!localKey) {
+            localKey = prompt(t.apiKeyPrompt || 'Для локальной проверки укажите Gemini API Key:');
+            if (localKey && localKey.trim()) {
+              localKey = localKey.trim();
+              localStorage.setItem('webreadypic_gemini_api_key', localKey);
+            }
+          }
+
+          if (!localKey) {
+            throw new Error(t.apiKeyRequired || 'Укажите Gemini API Key для локального теста');
+          }
+
+          var models = ['gemini-2.0-flash', 'gemini-1.5-flash-latest', 'gemini-1.5-flash-8b-latest'];
+          var directSuccess = null;
+          var lastDirectErr = '';
+
+          for (var i = 0; i < models.length; i++) {
+            var m = models[i];
+            var apiUrl = 'https://generativelanguage.googleapis.com/v1beta/models/' + m + ':generateContent?key=' + encodeURIComponent(localKey);
+            var directRes = await fetch(apiUrl, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                contents: [{ parts: [{ text: promptText }, { inlineData: { mimeType: mimeType, data: base64 } }] }]
+              })
+            });
+
+            var directData = await directRes.json().catch(function() { return {}; });
+            if (directRes.ok && directData.candidates && directData.candidates[0]) {
+              directSuccess = directData;
+              break;
+            }
+            lastDirectErr = directData.error ? directData.error.message : ('HTTP ' + directRes.status);
+            if (directRes.status === 401) break;
+          }
+
+          if (directSuccess) {
+            data = directSuccess;
+          } else {
+            throw new Error(lastDirectErr || 'Ошибка Gemini API');
+          }
+
+        } else {
+          // Боевой режим (Vercel / Netlify): безопасная вызов серверлесс-функции /api/generate-seo
+          var response = await fetch('/api/generate-seo', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              prompt: promptText,
+              image: base64,
+              mimeType: mimeType,
+              lang: this._lang
+            })
+          });
+
+          var contentType = response.headers.get("content-type");
+          if (!response.ok || !contentType || !contentType.includes("application/json")) {
+            var errorText = await response.text();
+            var errObj;
+            try { errObj = JSON.parse(errorText); } catch(e) {}
+            var errMessage = (errObj && errObj.error) ? errObj.error : `Ошибка сервера (${response.status}): ${errorText.slice(0, 100)}`;
+            throw new Error(errMessage);
+          }
+
+          data = await response.json();
         }
-
-        var data = await response.json();
         if (data.candidates && data.candidates[0] && data.candidates[0].content && data.candidates[0].content.parts && data.candidates[0].content.parts[0]) {
           let text = data.candidates[0].content.parts[0].text;
           text = text.replace(/```json/gi, '').replace(/```/g, '').trim();
