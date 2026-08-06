@@ -3,7 +3,9 @@
 
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <meta name="referrer" content="no-referrer" />
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self' 'unsafe-inline' 'unsafe-eval' blob: data: https://cdn.tailwindcss.com https://cdnjs.cloudflare.com https://fonts.googleapis.com https://fonts.gstatic.com https://cdn.jsdelivr.net https://generativelanguage.googleapis.com; img-src 'self' blob: data:; connect-src 'self' blob: https://cdn.jsdelivr.net https://huggingface.co https://*.huggingface.co; worker-src blob:;" />
   <title>WebReadyPic — Инновационная веб-подготовка графики</title>
   <meta name="description"
     content="Пакетная оптимизация и подготовка изображений для веба и e-commerce. WebP/JPEG/PNG, карточки товаров, до 50 файлов." />
@@ -48,14 +50,21 @@
 
     html {
       scroll-behavior: smooth;
+      width: 100%;
+      max-width: 100vw;
+      overflow-x: hidden;
     }
 
     body {
       margin: 0;
+      padding: 0;
       background: var(--bg);
       color: #F1F5F9;
       min-height: 100vh;
+      overflow-x: hidden;
       overflow-y: auto;
+      width: 100%;
+      max-width: 100vw;
     }
 
     /* Scrollbar */
@@ -184,10 +193,68 @@
 
     /* Mobile UI / UX Touch Target & Spacing Overrides (strictly for screens <= 768px) */
     @media (max-width: 768px) {
+
+      /* ─── Safe side padding so content never touches screen edges ─── */
+      .app-container {
+        padding-left: 16px !important;
+        padding-right: 16px !important;
+      }
+
+      /* ─── Header: compact logo & lang pill ─── */
+      #app-header {
+        padding-left: 12px;
+        padding-right: 12px;
+        gap: 8px;
+      }
+
+      /* Hide tagline under logo on very small screens */
+      #app-header [data-i18n="tagline"] {
+        display: none;
+      }
+
+      /* Lang pill: smaller text to fit header */
+      .lang-pill {
+        gap: 0;
+      }
+
+      .lang-btn {
+        padding: 4px 8px;
+        font-size: 9px;
+      }
+
+      /* ─── Feature-chips row: horizontal swipe, no line wrap ─── */
+      .feature-chips-row {
+        display: flex;
+        flex-wrap: nowrap;
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+        gap: 6px;
+        padding-bottom: 4px;
+        /* hide native scrollbar for clean swipe feel */
+        scrollbar-width: none;
+        -ms-overflow-style: none;
+      }
+
+      .feature-chips-row::-webkit-scrollbar {
+        display: none;
+      }
+
+      /* Chips must never shrink */
+      .feature-chips-row .feature-chip-wrap {
+        flex-shrink: 0;
+      }
+
+      /* ─── Dropzone ─── */
       #drop-zone {
         padding: 24px 16px !important;
       }
 
+      /* ─── Metric cards: 1 column on very small, 2 on medium mobile ─── */
+      .metric-cards-container {
+        grid-template-columns: 1fr !important;
+      }
+
+      /* ─── Touch targets ─── */
       .opt-btn {
         min-height: 44px;
         display: flex;
@@ -205,6 +272,13 @@
         min-width: 48px;
         display: flex;
         align-items: center;
+      }
+    }
+
+    /* 2-column metric grid for mid-size mobile (portrait tablets / large phones) */
+    @media (min-width: 480px) and (max-width: 768px) {
+      .metric-cards-container {
+        grid-template-columns: 1fr 1fr !important;
       }
     }
 
@@ -1004,7 +1078,7 @@
   <main class="app-container relative max-w-7xl mx-auto px-4 sm:px-6 relative z-10">
 
     <!-- Hero Feature Chips Tags (Full width above 2-column grid for Top Line Alignment) -->
-    <div class="flex items-center justify-center sm:justify-start gap-2 mb-4 flex-wrap">
+    <div class="feature-chips-row flex items-center justify-start gap-2 mb-4 flex-wrap">
 
       <!-- 1: Сжатие и Форматирование -->
       <div class="feature-chip-wrap">
@@ -1808,6 +1882,7 @@
         cardRemove: 'Видалити',
         cardDownload: 'Завантажити',
         seoError: 'Помилка генерації SEO',
+        jsZipError: 'JSZip не завантажено. Перевірте інтернет-з\'єднання.',
         apiKeyLabel: 'Gemini API Ключ (для ШІ-SEO)',
         apiKeyPlaceholder: 'Введіть ваш API ключ...',
         apiKeyRequired: 'Укажіть Gemini API Key в налаштуваннях',
@@ -1943,6 +2018,7 @@
         cardRemove: 'Удалить',
         cardDownload: 'Скачать',
         seoError: 'Ошибка генерации SEO',
+        jsZipError: 'JSZip не загружен. Проверьте интернет-соединение.',
         apiKeyLabel: 'Gemini API Ключ (для ИИ-SEO)',
         apiKeyPlaceholder: 'Введите ваш API ключ...',
         apiKeyRequired: 'Укажите Gemini API Key в настройках',
@@ -2078,6 +2154,7 @@
         cardRemove: 'Remove',
         cardDownload: 'Download',
         seoError: 'SEO generation failed',
+        jsZipError: 'JSZip library not loaded. Please check your internet connection.',
         apiKeyLabel: 'Gemini API Key (for AI-SEO)',
         apiKeyPlaceholder: 'Enter your API key...',
         apiKeyRequired: 'Please specify Gemini API Key in settings',
@@ -2533,6 +2610,9 @@
               // Сканируем ещё несколько строк снизу, чтобы найти ширину «подошвы»
               if (bottomY !== -1 && sy < bottomY - Math.round(drawH * 0.04)) break;
             }
+            // Освобождаем offscreen canvas после сканирования нижнего края
+            shadowProbe.width = 0;
+            shadowProbe.height = 0;
 
             // Если объект найден — рисуем тень точно под его основанием
             if (bottomY !== -1 && footR > footL) {
@@ -3047,7 +3127,7 @@
         var self = this;
         var done = Array.from(this._files.values()).filter(function (e) { return e.status === 'done' && e.resultBlob; });
         if (!done.length) { this._toast(TRANSLATIONS[this._lang].noFilesReady, 'warning'); return; }
-        if (typeof JSZip === 'undefined') { this._toast('JSZip не загружен. Проверьте интернет.', 'error'); return; }
+        if (typeof JSZip === 'undefined') { this._toast(TRANSLATIONS[this._lang].jsZipError || 'JSZip not loaded.', 'error'); return; }
 
         var zip = new JSZip();
         var ext = this._cfg.format === 'jpeg' ? 'jpg' : this._cfg.format;
@@ -3551,8 +3631,10 @@ Return strictly valid JSON without markdown formatting (no \`\`\`json wrappers),
         var tagsRaw = d.tags || '';
         var tagsArr = tagsRaw.split(',').map(function (t) { return t.trim().replace(/^#/, ''); }).filter(Boolean);
         document.getElementById('seo-modal-tags').setAttribute('data-raw', tagsArr.join(', '));
+        // XSS-safe: escape каждый тег перед вставкой в innerHTML
+        var self2 = this;
         document.getElementById('seo-modal-tags').innerHTML = tagsArr.map(function (t) {
-          return '<span class="seo-tag">#' + t + '</span>';
+          return '<span class="seo-tag">#' + self2._esc(t) + '</span>';
         }).join('');
 
         document.getElementById('seo-modal-wrap').classList.add('open');
